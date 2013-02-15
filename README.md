@@ -15,4 +15,6 @@ Proceedings of the 8th IEEE International Conference on e-Science 2012.
 * GWENDIA:
 A data-driven workflow language for grids based on array programming principles.
 Montagnat, J., Isnard, B., Glatard, T., Maheshwari, K., & Fornarino, M. (2009).
-WORKS '09: Proceedings of the 4th Workshop on Workflows in Support of Large-Scale Science.
+WORKS '09: Proceedings of the 4th Workshop on Workflows in Support of Large-Scale Science. [1]
+
+[1]: http://dl.acm.org/citation.cfm?id=1645171 "A data-driven workflow language for grids based on array programming principles"
