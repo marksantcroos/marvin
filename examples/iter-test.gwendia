@@ -11,6 +11,11 @@
             <port name="c" />
           </cross>
           <port name = "another" />
+          <dot>
+            <port name="yet-another" />
+            <port name="dotme!" />
+          </dot>
+
         </dot>
       </iterationstrategy>
       <gasw descriptor="lfn://lfc.grid.sara.nl:5010/grid/vlemed/vkorkhov/preDTI/runbinaryGASWFile-v3.xml" />

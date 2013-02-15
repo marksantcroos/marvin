@@ -22,7 +22,6 @@ class Source(object):
     def __init__(self):
         self.s_name = None
         self.s_type = None
-        pass
 
 class Input(object):
     __slots__ = ( 'i_name', 'i_type', 'i_depth' )
@@ -32,7 +31,6 @@ class Input(object):
         self.i_type = None
         self.i_depth = None
 
-        pass
 
 class Output(object):
 
@@ -42,7 +40,6 @@ class Output(object):
         self.o_name = None
         self.o_type = None
         self.o_depth = None
-        pass
 
 class GASW(object):
 
@@ -50,12 +47,10 @@ class GASW(object):
 
     def __init__(self):
         self.g_desc= None
-        pass
 
-# TODO: i_prev not needed?
 class Iteration(object):
 
-    __slots__ = ( 'i_type', 'i_strat', 'i_port', 'i_parent', 'i_child', 'i_prev', 'i_next')
+    __slots__ = ( 'i_type', 'i_strat', 'i_port', 'i_parent', 'i_child', 'i_next', 'i_depth')
 
     def __init__(self):
         self.i_type = None # PORT, ITERATION
@@ -64,7 +59,7 @@ class Iteration(object):
         self.i_parent = None # Pointer to higher level
         self.i_child = None # pointer to deeper level
         self.i_next = None # point to next element on this level
-        pass
+        self.i_depth = None # Depth of iteration nesting
 
 class Processor(object):
 
@@ -76,7 +71,6 @@ class Processor(object):
         self.p_gasw = None
         self.p_name = None
         self.p_iter = None
-        pass
 
 class Link(object):
 
@@ -85,7 +79,6 @@ class Link(object):
     def __init__(self):
         self.l_from = None
         self.l_to = None
-        pass
 
 class Workflow(object):
 
@@ -98,7 +91,6 @@ class Workflow(object):
         self.sinks = []
         self.constants = []
         self.links = []
-        pass
 
     
 
@@ -131,10 +123,11 @@ class WorkflowHandler(handler.ContentHandler):
         self.inside_out = False
         self.inside_gasw = False
         self.inside_iter = False
-        self.inside_dot = False
-        self.inside_cross = False
-        self.inside_flat_cross = False
-        self.iter_nesting = 0
+        self.inside_dot = 0
+        self.inside_cross = 0
+        self.inside_flat_cross = 0
+        self.inside_match = 0
+        self.iter_depth = 0
 
 
     # links
@@ -242,30 +235,34 @@ class WorkflowHandler(handler.ContentHandler):
 
             self.p_iter = Iteration()
             self.p_processor.p_iter = self.p_iter
+            self.p_iter.i_depth = self.iter_depth
+
 
         elif name in ['dot', 'cross', 'flat-cross', 'match']:
             if self.inside_iter != True:
                 raise('%s should not appear outside iterationstrategy' % name)
             if name == 'dot':
-                self.inside_dot = True
+                self.inside_dot += 1
             elif name =='cross':
-                self.inside_cross = True
+                self.inside_cross += 1
             elif name == 'flat-cross':
-                self.inside_flat_cross = True
+                self.inside_flat_cross += 1
             elif name == 'match':
-                self.inside_match = True
-            else:
-                raise('Unknown iteration strategy')
+                self.inside_match += 1
+
+            self.iter_depth += 1
 
             # Create new node for in tree and set its iteration strategy
             node = Iteration()
             node.i_strat = name
             node.i_type = 'ITERATION'
+            node.i_depth = self.iter_depth
 
-            # If p_iter is a PORT we stay at the same level, otherwise nest
+
+        # If p_iter is a PORT we stay at the same level, otherwise nest
             if self.p_iter.i_type == 'PORT':
-                node.i_prev = self.p_iter
                 self.p_iter.i_next = node
+                node.i_parent = self.p_iter.i_parent
             else:
                 node.i_parent = self.p_iter
                 self.p_iter.i_child = node
@@ -281,14 +278,21 @@ class WorkflowHandler(handler.ContentHandler):
             node = Iteration()
             node.i_type = 'PORT'
             node.i_port = attributes['name']
+            node.i_depth = self.iter_depth
 
             # If p_iter is a PORT we stay at the same level, otherwise nest
             if self.p_iter.i_type == 'PORT':
-                node.i_prev = self.p_iter
                 self.p_iter.i_next = node
+                node.i_parent = self.p_iter.i_parent
             else:
-                node.i_parent = self.p_iter
-                self.p_iter.i_child = node
+
+                if self.iter_depth == self.p_iter.i_depth:
+
+                    node.i_parent = self.p_iter
+                    self.p_iter.i_child = node
+                else:
+                    node.i_parent = self.p_iter.i_parent
+                    self.p_iter.i_next = node
 
             self.p_iter = node
 
@@ -316,63 +320,55 @@ class WorkflowHandler(handler.ContentHandler):
         # workflow
         if name == 'workflow':
             self.inside_workflow = False 
-            pass
-        
+
         # interface
         elif name == 'interface':
             self.inside_interface = False 
-            pass
         elif name == 'source':
             self.inside_source = False 
             self.workflow.sources.append(self.i_source)
-            pass
         elif name == 'sink':
             self.inside_sink = False 
             self.workflow.sinks.append(self.i_sink)
-            pass
         elif name == 'constant':
             self.inside_constant = False 
             self.workflow.constants.append(self.i_constant)
-            pass
 
         # processors
         elif name == 'processors':
             self.inside_processors = False 
-            pass
         elif name == 'processor':
             self.inside_processor = False 
             self.workflow.processors.append(self.p_processor)
-            pass
         elif name == 'in':
             self.inside_in = False 
             self.p_processor.p_in.append(self.p_in)
-            pass
         elif name == 'out':
             self.inside_out = False 
             self.p_processor.p_out.append(self.p_out)
-            pass
         elif name == 'gasw':
             self.inside_gasw = False 
             self.p_processor.p_gasw = self.p_gasw
-            pass
         elif name == 'iterationstrategy':
             self.inside_iter = False 
-            pass
         elif name == 'port':
             self.inside_port = False 
-            pass
-        elif name == 'cross':
-            self.inside_cross = False 
-            pass
-        elif name == 'dot':
-            self.inside_dot = False 
-            pass
-        elif name == 'flat-cross':
-            self.inside_flat_cross = False 
-            pass
-        elif name == 'match':
-            self.inside_match = False 
-            pass
+
+        # Iteration strategy
+        elif name in ['dot', 'cross', 'flat-cross', 'match']:
+            if name == 'cross':
+                self.inside_cross -= 1
+            elif name == 'dot':
+                self.inside_dot -= 1
+            elif name == 'flat-cross':
+                self.inside_flat_cross -= 1
+            elif name == 'match':
+                self.inside_match -= 1
+
+            self.iter_depth -= 1
+
+            if self.p_iter.i_parent:
+                self.p_iter = self.p_iter.i_parent
 
         # links
         elif name == 'links':
@@ -445,8 +441,9 @@ class WorkflowXML(object):
 if __name__ == '__main__':
 
     #gwendia_file = '../examples/dti_bedpost.gwendia'
-    gwendia_file = '../examples/iter-test.gwendia'
+    #gwendia_file = '../examples/iter-test.gwendia'
     #gwendia_file = '../examples/iter-simple.gwendia'
+    gwendia_file = '../examples/example.gwendia'
 
     wx = WorkflowXML()
     wx.read_from_file(gwendia_file)

@@ -111,7 +111,6 @@ class InputDataHandler(handler.ContentHandler):
                 else:
                     raise('Unknown Entry() type')
             else:
-                print 'assign this once'
                 self.i_source.s_entries = node
 
             self.array = node
@@ -172,18 +171,10 @@ class InputDataHandler(handler.ContentHandler):
         elif name == 'source':
             self.inside_source = False 
             self.inputdata.i_sources.append(self.i_source)
-
             self.array = None
 
         elif name == 'array':
-
-            print 'inside_array at closing:', self.inside_array
-
-            if self.array.e_type == 'ARRAY':
-                print 'self.array depth:', self.array.e_depth
-
             if self.array.e_parent:
-                print 'self.array has parent'
                 self.array = self.array.e_parent
 
             self.inside_array -= 1
@@ -201,7 +192,6 @@ class InputDataHandler(handler.ContentHandler):
                 raise('empty item')
 
             self.item = self.buffer
-
             self.array.e_item = self.item
 
 
@@ -253,13 +243,12 @@ class InputDataXML(object):
         def tree2str(e_iter, last=None, str=''):
 
             if e_iter.e_type == 'ITEM':
-                # print indent + 'Array item:', e_iter.e_item
                 if last == 'ITEM' or last == 'CLOSE':
                     str += ','
                 str += '\'%s\'' % e_iter.e_item
                 last = 'ITEM'
+
             elif e_iter.e_type == 'SCALAR':
-                # print indent + 'Scalar:', e_iter.e_item
                 str += '\'%s\'' % e_iter.e_item
                 last = 'SCALAR'
 
@@ -271,6 +260,7 @@ class InputDataXML(object):
                 str += tree2str(e_iter.e_child, last)
                 str += ']'
                 last = 'CLOSE'
+
             if e_iter.e_next:
                 str += tree2str(e_iter.e_next, last)
 

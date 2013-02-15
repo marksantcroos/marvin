@@ -28,12 +28,13 @@ def build_tree(wx):
         if p_iter.i_type == 'ITERATION':
             print indent + 'Iteration:', p_iter.i_strat
         elif p_iter.i_type == 'PORT':
-            print indent + 'Ports:', p_iter.i_port
+            print indent + 'Port:', p_iter.i_port
 
-        if p_iter.i_next:
-            print_iter(p_iter.i_next, indent)
         if p_iter.i_child:
             print_iter(p_iter.i_child, indent + '  ')
+        if p_iter.i_next:
+            print_iter(p_iter.i_next, indent)
+
 
     print '  Processors:'
     for p in wx.workflow.processors:
