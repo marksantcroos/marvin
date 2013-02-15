@@ -10,6 +10,7 @@ Related publications
 P*: A Model of Pilot-Abstractions.
 Luckow, A., Santcroos, M., Merzky, A., Weidner, O., Mantha, P., & Jha, S. (2012).
 Proceedings of the 8th IEEE International Conference on e-Science 2012.
+https://raw.github.com/saga-project/radical.wp/master/publications/pdf/pstar12_draft.pdf
 
 
 * GWENDIA:
