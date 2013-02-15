@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow name="mywf">
+
+  <interface>
+    <source name="name" type="string" />
+    <sink name="result" type="uri" />
+  </interface>
+
+  <processors>
+    <processor name="myproc" >
+      <in name="input0" type="string" depth="0" />
+
+      <out name="result0" type="uri" depth="0" />
+      <gasw descriptor="lfn://lfc.grid.sara.nl:5010/grid/vlemed/mark/dust-tests/helloworld/helloworld.xml" />
+    </processor>
+  </processors>
+
+  <links>
+      <link from="name" to="myproc:input0" />
+      <link from="myproc:result0" to="result" />
+  </links>
+
+</workflow>

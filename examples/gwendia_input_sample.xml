@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inputdata>
+  <source name="left" type="String">
+    <scalar>
+      <item>scalarval</item>
+      <!--item>2ndscalar</item-->
+    </scalar>
+  </source>
+  <source name="right" type="String">
+    <array>
+      <item>A</item>
+      <item>B</item>
+      <array>
+        <item>C</item>
+        <array>
+          <item>D</item>
+          <!--<item></item>-->
+        </array>
+        <item>E</item>
+        <item>F</item>
+        <array>
+          <item>G</item>
+          <array>
+            <item>H</item>
+          </array>
+        </array>
+        <array>
+          <item>I</item>
+        </array>
+        <item>J</item>
+
+      </array>
+      <item>K</item>
+      <array>
+        <item>L</item>
+        <item>M</item>
+      </array>
+      <item>N</item>
+    </array>
+  </source>
+</inputdata>

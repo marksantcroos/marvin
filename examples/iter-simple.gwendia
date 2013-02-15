@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow name="DTIpreprocessing_bedpostX (SHIWA)">
+
+  <processors>
+    <processor name="test-strat" >
+      <iterationstrategy>
+        <dot>
+          <port name="a" />
+          <dot>
+            <port name="b" />
+            <port name="c" />
+          </dot>
+        </dot>
+      </iterationstrategy>
+      <gasw descriptor="lfn://lfc.grid.sara.nl:5010/grid/vlemed/vkorkhov/preDTI/runbinaryGASWFile-v3.xml" />
+
+    </processor>
+    <processor name="runbinary" >
+
+      <iterationstrategy>
+        <dot>
+          <port name="data" />
+          <port name="command" />
+          <port name="binary" />
+          <port name="output-directory" />
+        </dot>
+      </iterationstrategy>
+      <gasw descriptor="lfn://lfc.grid.sara.nl:5010/grid/vlemed/vkorkhov/preDTI/runbinaryGASWFile-v3.xml" />
+
+    </processor>
+    <processor name="extractBedpostX" >
+      <in name="data" type="string" depth="0" />
+      <in name="output-directory" type="string" depth="0" />
+      <out name="result0" type="string" depth="0" />
+      <iterationstrategy>
+        <dot>
+          <port name="data" />
+          <port name="output-directory" />
+        </dot>
+      </iterationstrategy>
+      <gasw descriptor="lfn://lfc.grid.sara.nl:5010/grid/vlemed/vkorkhov/preDTI/extractBedpostX-gasw.xml" />
+    </processor>
+  </processors>
+
+</workflow>

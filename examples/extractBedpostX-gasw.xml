@@ -1,0 +1,24 @@
+<description>
+   <executable name="extractBedpostX.sh">
+
+<!--access_LFN-->
+   <access type="LFN"/>
+   <value value="/grid/vlemed/vkorkhov/preDTI/extractBedpostX.sh"/>
+<!--   <value value="/grid/vlemed/AMC-e-BioScience/dti-preprocessing/extractBedpostX.sh"/> -->
+
+<!--file_input_LFN-->
+   <input name="data" option="no0">
+      <access type="LFN"/>
+   </input>
+
+<!--param_input-->
+   <input name="output-directory" option="no1"/> 
+
+<!--file_output-->  
+   <output name="result0" option = "no2">
+      <template value="$dir2$na2/$na1_bedpostx.tgz"/>
+      <access type="LFN"/>
+   </output>
+
+</executable>
+</description>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inputdata>
+  <source name="listvalues" type="String">
+    <array>
+      <item>item1</item>
+      <item>item2</item>
+      <array>
+        <item>item3</item>
+        <item>item4</item>
+      </array>
+      <item>item5</item>
+    </array>
+  </source>
+</inputdata>

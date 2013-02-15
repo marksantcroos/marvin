@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inputdata>
+  <source name="outputDir" type="String">
+    <scalar>
+      <item>/grid/vlemed/vkorkhov/DTIAtlas/runs/dti-noloop-13-dev</item>
+    </scalar>
+  </source>
+  <source name="optionsFile" type="URI">
+    <scalar>
+
+      <item>lfn://lfc.grid.sara.nl:5010/grid/vlemed/shayan/bin/regOptions.txt</item>
+    </scalar>
+  </source>
+  <source name="dataIn" type="URI">
+    <array>
+      <item>lfn://lfc.grid.sara.nl/grid/vlemed/bioinfo/mwacaan5/inputs/19.mat</item>
+      <item>lfn://lfc.grid.sara.nl/grid/vlemed/bioinfo/mwacaan5/inputs/25.mat</item>
+
+    </array>
+  </source>
+</inputdata>

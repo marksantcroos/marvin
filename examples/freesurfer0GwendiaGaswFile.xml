@@ -1,0 +1,39 @@
+<description>
+   <executable name="runfreesurfer0.sh">
+
+<!--access_LFN-->
+   <access type="LFN"/>
+   <value value="/grid/vlemed/mark/freesurfer/runfreesurfer0.sh"/>
+
+<!--Requirements-->
+   <requirement value = "other.GlueCEPolicyMaxWallClockTime > 1" />
+
+<!--param_input-->
+   <input name="subjectID" option="-p1"/> 
+
+<!--param_input-->
+   <input name="myoutput-directory" option="-p2"/> 
+   
+<!--param_input-->
+   <input name="first-file-in-series" option="-p3"/> 
+
+<!--file_input_LFN-->
+   <input name="data" option="no0">
+      <access type="LFN"/>
+   </input>
+
+<!--file_output-->  
+   <output name="result0" option = "no1">
+      <!--template value="$dir2/$na1$na4_output.tar.gz"/-->
+      <template value="$dir2/output3.tar.gz"/>
+      <access type="LFN"/>           
+   </output>
+
+<!--sandbox-LFN--> 
+    <sandbox name="freesurfer.tar.gz">
+        <access type="LFN" /> 
+        <value value="/grid/vlemed/AMC-e-BioScience/freesurfer/freesurfer.tar.gz" /> 
+    </sandbox>
+
+</executable>
+</description>
