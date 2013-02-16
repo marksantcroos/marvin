@@ -1,7 +1,24 @@
-marvin
-======
+Marvin Workflow Management System
+=================================
+
+Introduction
+------------
 
 A Pilot-API based Workflow Management System with a brain the size of the universe.
+
+Installation
+------------
+
+    $ pip install marvin-wfms
+    
+Usage
+-----
+    
+    $ python marvin.py <workflow.xml> <input.xml>
+
+      <workflow.xml>: is a GWENDIA based workflow.
+      <input.xml>: the values to be used by the corresponding input ports.
+
 
 Related publications
 --------------------
