@@ -17,7 +17,6 @@ __author__ = 'mark'
 ###############################################################################
 
 import itertools
-from workflow_xml import WorkflowXML
 
 
 ###############################################################################
@@ -60,6 +59,9 @@ if __name__ == '__main__':
 
     gwendia_file = '../examples/iter-test.gwendia'
     #gwendia_file = '../examples/dti_bedpost.gwendia'
+
+
+    from workflow_xml import WorkflowXML
     wx = WorkflowXML()
     wx.read_from_file(gwendia_file)
     #wx.text_out()
