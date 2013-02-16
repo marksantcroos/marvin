@@ -2,6 +2,9 @@
 
 import pykka
 import time
+from workflow_xml import WorkflowXML
+from iteration import build_tree
+from inputdata_xml import InputDataXML
 
 ###############################################################################
 #
@@ -175,43 +178,64 @@ class IterationStrategy():
 if __name__ == '__main__':
 
 
+#
+#
+#
+#     src1_ref = Source.start('Input1')
+#     src1_proxy = src1_ref.proxy()
+#
+#     src2_ref = Source.start('Input2')
+#     src2_proxy = src2_ref.proxy()
+#
+# #    prc_ref= Processor.start('Square')
+# #    prc_proxy = prc_ref.proxy()
+#
+#     prc_ref= Processor.start('Multiplier')
+#     prc_proxy = prc_ref.proxy()
+#
+#     snk_ref = Sink.start('Result')
+#     snk_proxy = snk_ref.proxy()
+#
+#     #src_proxy.populate(4).get()
+#     src1_proxy.populate(4).get()
+#     src2_proxy.populate(3).get()
+#
+#
+#     src1_proxy.link_to(prc_proxy, 'left').get()
+#     src2_proxy.link_to(prc_proxy, 'right').get()
+#     prc_proxy.link_to(snk_proxy, 80).get()
+#     prc_proxy.run().get()
+#
+#
+# #    src_proxy.link_to(snk_proxy, 80).get()
+#
+#
+#
+#     src1_ref.stop()
+#     src2_ref.stop()
+#     prc_ref.stop()
+#     snk_ref.stop()
+
+
+    gwendia_file = '../examples/example.gwendia'
+
+    # inputfile = '../examples/gwendia_input_sample.xml'
+    inputfile = '../examples/dti7-noloop-input.xml'
+    # inputfile = '../examples/dti_bedpost-input.xml'
 
 
 
-    src1_ref = Source.start('Input1')
-    src1_proxy = src1_ref.proxy()
-
-    src2_ref = Source.start('Input2')
-    src2_proxy = src2_ref.proxy()
-
-#    prc_ref= Processor.start('Square')
-#    prc_proxy = prc_ref.proxy()
-
-    prc_ref= Processor.start('Multiplier')
-    prc_proxy = prc_ref.proxy()
-
-    snk_ref = Sink.start('Result')
-    snk_proxy = snk_ref.proxy()
-
-    #src_proxy.populate(4).get()
-    src1_proxy.populate(4).get()
-    src2_proxy.populate(3).get()
 
 
-    src1_proxy.link_to(prc_proxy, 'left').get()
-    src2_proxy.link_to(prc_proxy, 'right').get()
-    prc_proxy.link_to(snk_proxy, 80).get()
-    prc_proxy.run().get()
+    wx = WorkflowXML()
+    wx.read_from_file(gwendia_file)
 
+    ix = InputDataXML()
+    ix.read_from_file(inputfile)
+    print ix.list_out()
 
-#    src_proxy.link_to(snk_proxy, 80).get()
+    # build_tree(wx)
 
-
-
-    src1_ref.stop()
-    src2_ref.stop()
-    prc_ref.stop()
-    snk_ref.stop()
 #
 ###############################################################################
 
