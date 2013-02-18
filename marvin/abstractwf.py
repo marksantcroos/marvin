@@ -31,6 +31,10 @@ class AbstractWF(object):
     # that was read from file
     #
     def construct(self, elements):
+        """
+
+        :param elements:
+        """
         self.elements = elements
 
         self.nodes = dict()
@@ -46,11 +50,32 @@ class AbstractWF(object):
         for p in self.elements.processors:
             node = Processor()
             node.name = p.p_name
-            node.in_ports = p.p_in
-            node.out_ports = p.p_out
+
             node.iter_strat = p.p_iter
             self.nodes[node.name] = node
-            self.graph.add_node(node) 
+            self.graph.add_node(node)
+
+            node.in_ports = p.p_in
+            for port in node.in_ports:
+                pnode = Port()
+                pnode.name = '%s:%s' % (node.name, port.i_name)
+                self.nodes[pnode.name] = pnode
+                self.graph.add_node(pnode)
+
+                # Add connection from input port to node
+                self.graph.add_edge(self.nodes[pnode.name], self.nodes[node.name])
+
+
+            node.out_ports = p.p_out
+            for port in node.out_ports:
+                pnode = Port()
+                pnode.name = '%s:%s' % (node.name, port.o_name)
+                self.nodes[pnode.name] = pnode
+                self.graph.add_node(pnode)
+
+                # Add connection from output node to port
+                self.graph.add_edge(self.nodes[node.name], self.nodes[pnode.name])
+
 
         # Create Source Nodes
         for s in self.elements.sources:
@@ -70,13 +95,8 @@ class AbstractWF(object):
         # Iterate over links to create edges
         for l in self.elements.links:
 
-            # Determine the src and dest nodes
-            l_from_node = string.split(l.l_from, ':', 1)[0]
-            l_to_node = string.split(l.l_to, ':', 1)[0]
-
             # Create the final edge between the nodes and/or ports
-            self.graph.add_edge(self.nodes[l_from_node], \
-                    self.nodes[l_to_node], dest=str(l.l_to))
+            self.graph.add_edge(self.nodes[l.l_from], self.nodes[l.l_to])
             
             
 
@@ -152,12 +172,15 @@ if __name__ == '__main__':
     from workflow_xml import WorkflowXML
     wx = WorkflowXML()
     wx.read_from_file('../examples/dti_bedpost.gwendia')
-    #wx.text_out()
+    wx.text_out()
     wfe = wx.workflow
 
     awf = AbstractWF()
     awf.construct(wfe)
     awf.draw()
+
+
+
 
 
 
