@@ -19,8 +19,59 @@ __author__ = 'mark'
 import itertools
 
 
+
+def flat_cross_product(self, ports):
+    """ The flat-cross product is not to be used as an iteration strategy as it only differs from the "normal" cross product in the way it produces the output. """
+
+    cross = self.cross_product(ports)
+
+    flat = [j for i in cross for j in i]
+
+    print flat
+
+    print 'Number of iterations', len(flat)
+
+    return flat
+
+
+def cross_product(self, ports):
+    """ This iteration strategy creates a cross product out of all values on the input ports. """
+
+    print 'Number of ports:', len(ports)
+    print 'Max depth:', max(len(p) for p in ports)
+
+    cross = [[]]
+    for x in ports:
+        cross = [ i + [y] for y in x for i in cross ]
+    print 'Cross:', cross
+
+    print 'Number of iterations', len(cross)
+
+    return cross
+
+def dot_product(self, ports):
+    """ This iteration strategy creates a dot product out of all values on the input ports. """
+
+    num_ports = len(ports)
+    print 'Number of ports:', num_ports
+    max_depth = max(len(p) for p in ports)
+    print 'Max depth:', max_depth
+
+    for p in ports:
+        if len(p) != max_depth:
+            raise('Oops, not all ports have the same length, not possible with dot product!')
+
+    r = [[ports[i][j] for i in range(num_ports) ] for j in range(max_depth)]
+
+    print 'Number of iterations', len(r)
+
+    print r
+
+    return r
+
+
 ###############################################################################
-def build_tree(wx):
+def print_tree(wx):
 
     def print_iter(p_iter, indent):
 
@@ -66,4 +117,4 @@ if __name__ == '__main__':
     wx.read_from_file(gwendia_file)
     #wx.text_out()
 
-    build_tree(wx)
+    print_tree(wx)
