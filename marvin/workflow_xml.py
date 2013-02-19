@@ -24,22 +24,22 @@ class Source(object):
         self.s_type = None
 
 class Input(object):
-    __slots__ = ( 'i_name', 'i_type', 'i_depth' )
+    __slots__ = ( 'p_name', 'p_type', 'p_depth' )
 
     def __init__(self):
-        self.i_name = None
-        self.i_type = None
-        self.i_depth = None
+        self.p_name = None
+        self.p_type = None
+        self.p_depth = None
 
 
 class Output(object):
 
-    __slots__ = ( 'o_name', 'o_type', 'o_depth' )
+    __slots__ = ( 'p_name', 'p_type', 'p_depth' )
 
     def __init__(self):
-        self.o_name = None
-        self.o_type = None
-        self.o_depth = None
+        self.p_name = None
+        self.p_type = None
+        self.p_depth = None
 
 class GASW(object):
 
@@ -182,6 +182,9 @@ class WorkflowHandler(handler.ContentHandler):
             self.i_constant.c_value = attributes['value']
             self.i_constant.c_card = attributes['cardinality']
 
+            if self.i_constant.c_card != 'scalar':
+                raise Exception('Only scalar type constants supported:' + self.i_constant.c_card)
+
         # processors
         elif name == 'processors':
             if self.inside_workflow != True:
@@ -204,9 +207,9 @@ class WorkflowHandler(handler.ContentHandler):
 
             self.p_in = Input()
 
-            self.p_in.i_name = attributes['name']
-            self.p_in.i_type = attributes['type']
-            self.p_in.i_depth = attributes['depth']
+            self.p_in.p_name = attributes['name']
+            self.p_in.p_type = attributes['type']
+            self.p_in.p_depth = attributes['depth']
 
         elif name == 'out':
             if self.inside_processor != True:
@@ -215,9 +218,9 @@ class WorkflowHandler(handler.ContentHandler):
 
             self.p_out = Output()
 
-            self.p_out.o_name = attributes['name']
-            self.p_out.o_type = attributes['type']
-            self.p_out.o_type = attributes['depth']
+            self.p_out.p_name = attributes['name']
+            self.p_out.p_type = attributes['type']
+            self.p_out.p_depth = attributes['depth']
 
         elif name == 'gasw':
             if self.inside_processor != True:
@@ -279,6 +282,7 @@ class WorkflowHandler(handler.ContentHandler):
             node.i_type = 'PORT'
             node.i_port = attributes['name']
             node.i_depth = self.iter_depth
+
 
             # If p_iter is a PORT we stay at the same level, otherwise nest
             if self.p_iter.i_type == 'PORT':
