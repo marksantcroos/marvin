@@ -238,7 +238,7 @@ class InputDataXML(object):
 
 
 
-    def list_out(self):
+    def list_inputs(self):
 
         def tree2str(e_iter, last=None, str=''):
 
@@ -288,7 +288,8 @@ if __name__ == '__main__':
     ix = InputDataXML()
     ix.read_from_file(inputfile)
     #ix.text_out()
-    print ix.list_out()
+    print ix.list_inputs()
 
-    #data = ix.inputdata
-    #print data
+    # data = ix.inputdata
+    # for d in data:
+    #     print d
