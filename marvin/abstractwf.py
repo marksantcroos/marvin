@@ -58,7 +58,10 @@ class AbstractWF(object):
             node.in_ports = p.p_in
             for port in node.in_ports:
                 pnode = Port()
-                pnode.name = '%s:%s' % (node.name, port.i_name)
+                pnode.name = '%s:%s' % (node.name, port.p_name)
+                pnode.depth = port.p_depth
+                pnode.port_type = port.p_type
+
                 self.nodes[pnode.name] = pnode
                 self.graph.add_node(pnode)
 
@@ -69,7 +72,10 @@ class AbstractWF(object):
             node.out_ports = p.p_out
             for port in node.out_ports:
                 pnode = Port()
-                pnode.name = '%s:%s' % (node.name, port.o_name)
+                pnode.name = '%s:%s' % (node.name, port.p_name)
+                pnode.depth = port.p_depth
+                pnode.port_type = port.p_type
+
                 self.nodes[pnode.name] = pnode
                 self.graph.add_node(pnode)
 
@@ -109,23 +115,26 @@ class AbstractWF(object):
             self.graph.node[n]['label'] = str(n.name)
 
             if isinstance(n, Processor):
-                self.graph.node[n]['shape'] = 'box'
+                self.graph.node[n]['shape'] = 'doubleoctagon'
 
             elif isinstance(n, Source):
-                self.graph.node[n]['shape'] = 'triangle'
+                self.graph.node[n]['shape'] = 'invtriangle'
 
             elif isinstance(n, Constant):
-                self.graph.node[n]['shape'] = 'triangle'
+                self.graph.node[n]['shape'] = 'invhouse'
 
             elif isinstance(n, Sink):
-                self.graph.node[n]['shape'] = 'diamond'
+                self.graph.node[n]['shape'] = 'triangle'
+
+            elif isinstance(n, Port):
+                self.graph.node[n]['shape'] = 'box'
 
         nx.write_dot(self.graph, 'awf.dot')
 
     #
     # Return the input nodes of the graph
     #
-    def proc_nodes(self):
+    def list_proc_nodes(self):
 
         result = []
 
@@ -136,14 +145,27 @@ class AbstractWF(object):
         return result
 
     #
+    # Return the port nodes of the graph
+    #
+    def list_port_nodes(self):
+
+        result = []
+
+        for n in self.graph.nodes():
+            if isinstance(n, Port):
+                result.append(n)
+
+        return result
+    #
     # Return the input nodes of the graph
     #
-    def input_nodes(self):
+    def list_input_nodes(self):
 
         result = []
 
         for n in self.graph.nodes():
             count = len(self.graph.predecessors(n))
+
             if count == 0:
                 result.append(n)
 
@@ -152,7 +174,7 @@ class AbstractWF(object):
     #
     # Return the output nodes of the graph
     #
-    def output_nodes(self):
+    def list_output_nodes(self):
 
         result = []
 
@@ -162,6 +184,9 @@ class AbstractWF(object):
                 result.append(n)
 
         return result
+
+    def list_edges(self, nodes):
+        return self.graph.edges(nodes)
 
 
 #
