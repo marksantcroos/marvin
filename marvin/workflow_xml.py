@@ -23,16 +23,7 @@ class Source(object):
         self.s_name = None
         self.s_type = None
 
-class Input(object):
-    __slots__ = ( 'p_name', 'p_type', 'p_depth' )
-
-    def __init__(self):
-        self.p_name = None
-        self.p_type = None
-        self.p_depth = None
-
-
-class Output(object):
+class Port(object):
 
     __slots__ = ( 'p_name', 'p_type', 'p_depth' )
 
@@ -205,7 +196,7 @@ class WorkflowHandler(handler.ContentHandler):
                 raise('in should not appear outside processor')
             self.inside_in = True
 
-            self.p_in = Input()
+            self.p_in = Port()
 
             self.p_in.p_name = attributes['name']
             self.p_in.p_type = attributes['type']
@@ -216,7 +207,7 @@ class WorkflowHandler(handler.ContentHandler):
                 raise('out should not appear outside processor')
             self.inside_out = True
 
-            self.p_out = Output()
+            self.p_out = Port()
 
             self.p_out.p_name = attributes['name']
             self.p_out.p_type = attributes['type']
@@ -424,9 +415,9 @@ class WorkflowXML(object):
 
             print '      GASW:', p.p_gasw.g_desc
             for i in p.p_in:
-                print '      Input:', i.i_name, i.i_type, i.i_depth
+                print '      Port:', i.p_name, i.p_type, i.p_depth
             for o in p.p_out:
-                print '      Output:', o.o_name, o.o_type, o.o_depth
+                print '      Output:', o.p_name, o.p_type, o.p_depth
 
             if p.p_iter:
               print_iter(p.p_iter, '      ')
