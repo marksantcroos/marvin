@@ -1,89 +1,6 @@
 from xml.sax import handler, make_parser
 
-class Constant(object):
-    __slots__ = ( 'c_name', 'c_type', 'c_value', 'c_card' )
-
-    def __init__(self):
-        self.c_name = None
-        self.c_type = None
-        self.c_value = None
-        self.c_card = None
-
-class Sink(object):
-    __slots__ = ( 's_name', 's_type'  )
-
-    def __init__(self):
-        self.s_name = None
-        self.s_type = None
-
-class Source(object):
-    __slots__ = ( 's_name', 's_type'  )
-
-    def __init__(self):
-        self.s_name = None
-        self.s_type = None
-
-class Port(object):
-
-    __slots__ = ( 'p_name', 'p_type', 'p_depth' )
-
-    def __init__(self):
-        self.p_name = None
-        self.p_type = None
-        self.p_depth = None
-
-class GASW(object):
-
-    __slots__ = ( 'g_desc' )
-
-    def __init__(self):
-        self.g_desc= None
-
-class Iteration(object):
-
-    __slots__ = ( 'i_type', 'i_strat', 'i_port', 'i_parent', 'i_child', 'i_next', 'i_depth')
-
-    def __init__(self):
-        self.i_type = None # PORT, ITERATION
-        self.i_strat = None # ITERATE_DOT, ITERATE_CROSS, ITERATE_FLAT_CROSS, ITERATE_MATCH
-        self.i_port = None # Name of the port
-        self.i_parent = None # Pointer to higher level
-        self.i_child = None # pointer to deeper level
-        self.i_next = None # point to next element on this level
-        self.i_depth = None # Depth of iteration nesting
-
-class Processor(object):
-
-    __slots__ = ( 'p_in', 'p_out', 'p_gasw', 'p_name', 'p_iter' )
-
-    def __init__(self):
-        self.p_in = []
-        self.p_out = []
-        self.p_gasw = None
-        self.p_name = None
-        self.p_iter = None
-
-class Link(object):
-
-    __slots__ = ( 'l_from', 'l_to' )
-
-    def __init__(self):
-        self.l_from = None
-        self.l_to = None
-
-class Workflow(object):
-
-    __slots__ = ( 'processors', 'name', 'sources', 'sinks', 'constants', 'links' )
-
-    def __init__(self):
-        self.name = None
-        self.processors = []
-        self.sources = []
-        self.sinks = []
-        self.constants = []
-        self.links = []
-
-    
+from abstractwf import Workflow, Source, Sink, Port, Constant, Iteration, GASW, Processor, Link
 
 class WorkflowHandler(handler.ContentHandler):
 
@@ -374,73 +291,16 @@ class WorkflowHandler(handler.ContentHandler):
             self.workflow.links.append(self.l_link)
             pass
 
-class WorkflowXML(object):
-
-    def __init__(self):
-        self.parser = make_parser()
-        self.handler = WorkflowHandler()
-        self.parser.setContentHandler(self.handler)
-
-    def read_from_file(self, xmlfile):
-        self.parser.parse(xmlfile)
-
-        self.workflow = self.handler.workflow
-        
-    def text_out(self):
-
-        def print_iter(p_iter, indent):
-
-            if p_iter.i_type == 'ITERATION':
-                print indent + 'Iteration:', p_iter.i_strat
-            elif p_iter.i_type == 'PORT':
-                print indent + 'Ports:', p_iter.i_port
-
-            if p_iter.i_next:
-                print_iter(p_iter.i_next, indent)
-            if p_iter.i_child:
-                print_iter(p_iter.i_child, indent + '  ')
-
-        print 'Workflow:', self.workflow.name
-        print '  Interfaces:'
-        for s in self.workflow.sources:
-            print '    Source:', s.s_name, s.s_type
-        for s in self.workflow.sinks:
-            print '    Sink:', s.s_name, s.s_type
-        for c in self.workflow.constants:
-            print '    Constant:', c.c_name, c.c_type, c.c_value, c.c_card
-
-        print '  Processors:'
-        for p in self.workflow.processors:
-            print '    Processor:', p.p_name
-
-            print '      GASW:', p.p_gasw.g_desc
-            for i in p.p_in:
-                print '      Port:', i.p_name, i.p_type, i.p_depth
-            for o in p.p_out:
-                print '      Output:', o.p_name, o.p_type, o.p_depth
-
-            if p.p_iter:
-              print_iter(p.p_iter, '      ')
-
-        print '  Links:'
-        for l in self.workflow.links:
-            print '    Link:', l.l_from, '->', l.l_to
-
-    def tograph(self):
-        pass
-
-
 #
-# Main function
+# Read XML GWENDIA file
 #
-if __name__ == '__main__':
+def xml2abstract(xml_file_path):
 
-    #gwendia_file = '../examples/dti_bedpost.gwendia'
-    #gwendia_file = '../examples/iter-test.gwendia'
-    #gwendia_file = '../examples/iter-simple.gwendia'
-    gwendia_file = '../examples/example.gwendia'
+    parser = make_parser()
+    handler = WorkflowHandler()
+    parser.setContentHandler(handler)
 
-    wx = WorkflowXML()
-    wx.read_from_file(gwendia_file)
-    wx.text_out()
-    #wfe = wx.workflow
+    parser.parse(xml_file_path)
+    workflow = handler.workflow
+
+    return workflow
