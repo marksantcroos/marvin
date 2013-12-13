@@ -163,6 +163,7 @@ class Port(pykka.ThreadingActor):
 
 #
 ###############################################################################
+
 ###############################################################################
 #
 # Processor Actor
@@ -313,7 +314,7 @@ class ConcreteWF(object):
         for n in self.awf.list_port_nodes():
             print 'Creating actor for Port:', n.name
 
-            ref = Port.start(n.name, n.port_type, n.depth)
+            ref = Port.start(n.name, n.type, n.depth)
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 
@@ -330,7 +331,7 @@ class ConcreteWF(object):
 
 
 
-            #
+    #
     # Draw and display the graph
     #
     def instantiate(self):
@@ -396,49 +397,3 @@ class ConcreteWF(object):
         for ref in self.actor_refs:
             ref.stop()
         print 'All actors stopped.'
-
-
-###############################################################################
-#
-# Main
-#
-if __name__ == '__main__':
-    print 'hello'
-
-#
-#
-#
-#     src1_ref = Source.start('Input1')
-#     src1_proxy = src1_ref.proxy()
-#
-#     src2_ref = Source.start('Input2')
-#     src2_proxy = src2_ref.proxy()
-#
-# #    prc_ref= Processor.start('Square')
-# #    prc_proxy = prc_ref.proxy()
-#
-#     prc_ref= Processor.start('Multiplier')
-#     prc_proxy = prc_ref.proxy()
-#
-#     snk_ref = Sink.start('Result')
-#     snk_proxy = snk_ref.proxy()
-#
-#     #src_proxy.populate(4).get()
-#     src1_proxy.populate(4).get()
-#     src2_proxy.populate(3).get()
-#
-#
-#     src1_proxy.link_to(prc_proxy, 'left').get()
-#     src2_proxy.link_to(prc_proxy, 'right').get()
-#     prc_proxy.link_to(snk_proxy, 80).get()
-#     prc_proxy.run().get()
-#
-#
-# #    src_proxy.link_to(snk_proxy, 80).get()
-#
-#
-#
-#     src1_ref.stop()
-#     src2_ref.stop()
-#     prc_ref.stop()
-#     snk_ref.stop()
