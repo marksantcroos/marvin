@@ -161,7 +161,11 @@ class AbstractWF(object):
                 style='filled'
                 fillcolor='white'
 
-            graph.add_node(str(nx_node.name), shape=shape, style=style, color=color, fillcolor=fillcolor, label=nx_node.label)
+            if hasattr(nx_node, 'label'):
+                label = nx_node.label
+            else:
+                label = nx_node.name
+            graph.add_node(str(nx_node.name), shape=shape, style=style, color=color, fillcolor=fillcolor, label=label)
 
         for nx_node in self.graph.nodes():
             # Find all the processors,
