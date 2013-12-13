@@ -94,6 +94,10 @@ class AbstractWF(object):
         print '### Add edge: %s -> %s' % (tail_name, head_name)
         self.graph.add_edge(self.nodes[tail_name], self.nodes[head_name])
 
+    # Check if a node with this name already exists
+    def exist_node(self, name):
+        return name in self.nodes
+
 
     #
     # Draw and display the graph
