@@ -17,7 +17,7 @@ setup(
     license = 'BSD',
     keywords = 'workflow gwendia pilot',
     url = 'http://packages.python.org/marvin_wfms',
-    packages=['bin', 'doc', 'examples', 'marvin'],
+    packages=['marvin'],
     long_description=read('README.md'),
     requires=['networkx', 'pykka', 'pygraphviz'],
     classifiers=[
