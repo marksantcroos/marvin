@@ -24,7 +24,8 @@ def ms2a(systems, steps):
         system_source_ext_list = ['pdb', 'crd', 'parm']
         for ext in system_source_ext_list:
             node = Source()
-            node.name = 'system%s_%s' % (system, ext)
+            node.name = 'sys%s_%s' % (system, ext)
+            node.label = node.name
             awf.add_node(node.name, node)
 
         # Source per system for first step
@@ -32,13 +33,15 @@ def ms2a(systems, steps):
         for ext in system_sink_ext_list:
             node = Source()
             node.name = 'mineq%s_%s' % (system, ext)
+            node.label = node.name
             awf.add_node(node.name, node)
 
         # Sinks per system
         system_sink_ext_list = ['coor', 'vel', 'xsc']
         for ext in system_sink_ext_list:
             node = Sink()
-            node.name = 'system%s_%s' % (system, ext)
+            node.name = 'sys%s_%s' % (system, ext)
+            node.label = node.name
             awf.add_node(node.name, node)
 
         # Loop over all STEPS
@@ -48,7 +51,8 @@ def ms2a(systems, steps):
             # - dynX.conf (same for all systems, one for each ns MD step)
             ext = 'conf'
             node = Source()
-            node.name = 'step%s_%s' % (step, ext)
+            node.name = 'st%s_%s' % (step, ext)
+            node.label = node.name
             # As all systems share the same config for every step,
             # we only need to create it once per step.
             if not awf.exist_node(node.name):
@@ -58,12 +62,14 @@ def ms2a(systems, steps):
             stage_sink_ext_list = ['out', 'err', 'dcd', 'cvd', 'xst']
             for ext in stage_sink_ext_list:
                 node = Sink()
-                node.name = 'system%s_step%s_%s' % (system, step, ext)
+                node.name = 'sys%s_st%s_%s' % (system, step, ext)
+                node.label = node.name
                 awf.add_node(node.name, node)
 
             # The actual process!
             proc = Processor()
-            proc.name = 'system%s_step%s' % (system, step)
+            proc.label = 'system%s_step%s' % (system, step)
+            proc.name = 'sys%s_st%s' % (system, step)
             awf.add_node(proc.name, proc)
 
             # - dynX-1.coor, dynX-1.vel, dynX-1.xsc (passed from previous step): 7.2MB
@@ -71,9 +77,7 @@ def ms2a(systems, steps):
             for ext in stage_in_ext_list:
                 port = Port()
                 port.label = 'IN_' + ext
-                #port_node_name = '%s:%s' % (proc.name, port.name)
                 port.name = '%s:%s' % (proc.name, port.label)
-                #port_node_name = '%s:%s' % (proc.name, port.name)
                 awf.add_node(port.name, port)
 
                 # Add connection from input port to node
@@ -84,36 +88,36 @@ def ms2a(systems, steps):
                     awf.add_edge('mineq%s_%s' % (system, ext), port.name)
                 else:
                     # Add connection from source to port
-                    awf.add_edge('system%s_step%s:OUT_%s' % (system, step -1, ext), port.name)
+                    awf.add_edge('sys%s_st%s:OUT_%s' % (system, step -1, ext), port.name)
 
 
             # - sys.pdb, sys.crd, sys.parm: 33.6MB
             sys_in_ext_list = ['pdb', 'crd', 'parm']
             for ext in sys_in_ext_list:
                 port = Port()
-                port.name = 'IN_' + ext
-                port_node_name = '%s:%s' % (proc.name, port.name)
-                awf.add_node(port_node_name, port)
+                port.label = 'IN_' + ext
+                port.name = '%s:%s' % (proc.name, port.label)
+                awf.add_node(port.name, port)
 
                 # Add connection from input port to node
-                awf.add_edge(port_node_name, proc.name)
+                awf.add_edge(port.name, proc.name)
 
                 # Add connection from source to port
-                awf.add_edge('system%s_%s' % (system, ext), port_node_name)
+                awf.add_edge('sys%s_%s' % (system, ext), port.name)
 
             # Config port
             # - dynX.conf (same for all systems, one for each ns MD step)
             ext = 'conf'
             port = Port()
-            port.name = 'IN_' + ext
-            port_node_name = '%s:%s' % (proc.name, port.name)
-            awf.add_node(port_node_name, port)
+            port.label = 'IN_' + ext
+            port.name = '%s:%s' % (proc.name, port.label)
+            awf.add_node(port.name, port)
 
             # Add connection from input port to node
-            awf.add_edge(port_node_name, proc.name)
+            awf.add_edge(port.name, proc.name)
 
             # Add connection from source to port
-            awf.add_edge('step%s_%s' % (step, ext), port_node_name)
+            awf.add_edge('st%s_%s' % (step, ext), port.name)
 
             # Output from step X :
             # - dynX.coor, dynX.vel, dynX.xsc: passed to next step
@@ -125,28 +129,28 @@ def ms2a(systems, steps):
 
             for ext in stage_out_ext_list:
                 port = Port()
-                port.name = 'OUT_' + ext
-                port_node_name = '%s:%s' % (proc.name, port.name)
-                awf.add_node(port_node_name, port)
+                port.label = 'OUT_' + ext
+                port.name = '%s:%s' % (proc.name, port.label)
+                awf.add_node(port.name, port)
 
                 # Add connection from output node to port
-                awf.add_edge(proc.name, port_node_name)
+                awf.add_edge(proc.name, port.name)
 
                 # Add connection from output port to sink for last step
                 if step == steps - 1:
-                    awf.add_edge(port_node_name, 'system%s_%s' % (system, ext))
+                    awf.add_edge(port.name, 'sys%s_%s' % (system, ext))
 
             for ext in diag_ext_list + ana_ext_list:
                 port = Port()
-                port.name = 'OUT_' + ext
-                port_node_name = '%s:%s' % (proc.name, port.name)
-                awf.add_node(port_node_name, port)
+                port.label = 'OUT_' + ext
+                port.name = '%s:%s' % (proc.name, port.label)
+                awf.add_node(port.name, port)
 
                 # Add connection from output node to port
-                awf.add_edge(proc.name, port_node_name)
+                awf.add_edge(proc.name, port.name)
 
                 # Add connection from output port to sink
-                awf.add_edge(port_node_name, 'system%s_step%s_%s' % (system, step, ext))
+                awf.add_edge(port.name, 'sys%s_st%s_%s' % (system, step, ext))
 
         #
         # End of STEP loop
@@ -179,8 +183,8 @@ if __name__ == '__main__':
     #NUM_TASKS = NUM_STAGES * NUM_SYSTEMS
 
     awf = ms2a(NUM_SYSTEMS, NUM_STAGES)
-    awf.nx_draw()
-    #awf.pg_draw()
+    #awf.nx_draw()
+    awf.pg_draw()
 
     print 'EOF'
 #
