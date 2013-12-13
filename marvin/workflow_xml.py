@@ -362,18 +362,20 @@ def construct_from_xml(elements):
         awf.add_node(proc.name, proc)
 
         for port in proc.input:
-            port_node_name = '%s:%s' % (proc.name, port.name)
-            awf.add_node(port_node_name, port)
+            port.label = port.name
+            port.name = '%s:%s' % (proc.name, port.name)
+            awf.add_node(port.name, port)
 
             # Add connection from input port to node
-            awf.add_edge(port_node_name, proc.name)
+            awf.add_edge(port.name, proc.name)
 
         for port in proc.output:
-            port_node_name = '%s:%s' % (proc.name, port.name)
-            awf.add_node(port_node_name, port)
+            port.label = port.name
+            port.name = '%s:%s' % (proc.name, port.name)
+            awf.add_node(port.name, port)
 
             # Add connection from output node to port
-            awf.add_edge(proc.name, port_node_name)
+            awf.add_edge(proc.name, port.name)
 
     # Create Source Nodes
     for source in elements.sources:
