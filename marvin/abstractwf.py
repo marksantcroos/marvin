@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import networkx as nx
+import pygraphviz as pg
 import string
 
 class Node(object):
@@ -86,12 +87,12 @@ class AbstractWF(object):
         self.nodes = dict()
 
     def add_node(self, name, node):
-        print '### Add node: %s' % name
+        #print '### Add node: %s' % name
         self.nodes[name] = node
         self.graph.add_node(node)
 
     def add_edge(self, tail_name, head_name):
-        print '### Add edge: %s -> %s' % (tail_name, head_name)
+        #print '### Add edge: %s -> %s' % (tail_name, head_name)
         self.graph.add_edge(self.nodes[tail_name], self.nodes[head_name])
 
     # Check if a node with this name already exists
@@ -102,7 +103,7 @@ class AbstractWF(object):
     #
     # Draw and display the graph
     #
-    def draw(self):
+    def nx_draw(self):
 
         for n in self.graph.nodes():
             self.graph.node[n]['label'] = str(n.name)
@@ -121,8 +122,79 @@ class AbstractWF(object):
 
             elif isinstance(n, Port):
                 self.graph.node[n]['shape'] = 'box'
+                self.graph.node[n]['label'] = n.label
 
         nx.write_dot(self.graph, 'awf.dot')
+
+    #
+    # Draw and display the graph with pygraphviz
+    #
+    def pg_draw(self):
+
+        graph = pg.AGraph()
+
+        for nx_node in self.graph.nodes():
+
+            style='solid'
+            fillcolor=''
+            color='black'
+
+            if isinstance(nx_node, Processor):
+                shape = 'octagon'
+                style='filled'
+                fillcolor='white'
+
+            elif isinstance(nx_node, Source):
+                #shape = 'invtriangle'
+                shape = 'invhouse'
+
+            elif isinstance(nx_node, Constant):
+                shape = 'invtriangle'
+                #shape = 'invhouse'
+
+            elif isinstance(nx_node, Sink):
+                #shape = 'triangle'
+                shape = 'diamond'
+
+            elif isinstance(nx_node, Port):
+                shape = 'box'
+                style='filled'
+                fillcolor='white'
+
+            graph.add_node(str(nx_node.name), shape=shape, style=style, color=color, fillcolor=fillcolor, label=nx_node.label)
+
+        for nx_node in self.graph.nodes():
+            # Find all the processors,
+            if isinstance(nx_node, Processor):
+
+                # All neighbors of the Processor (a.k.a.: just ports)
+                nb = [node.name for node in nx.all_neighbors(self.graph, nx_node)]
+
+                # Group processors and ports into subgraphs
+                graph.subgraph(nb+[nx_node.name], name='cluster:'+nx_node.name,
+                        style='filled', fillcolor='lightgrey')#,
+
+
+        # Draw all the edges
+        for f,t in self.graph.edges():
+            graph.add_edge(f.name, t.name, dir='forward')
+            #if not (isinstance(f, Processor) or isinstance(t, Processor)):
+            #    graph.add_edge(f.name, t.name, dir='forward')
+            #else:
+            #    graph.add_edge(f.name, t.name, style='invisible')
+
+
+        # Create legend
+        graph.add_node('Output', shape='diamond', style='filled', fillcolor='white')
+        graph.add_node('Compute Unit', shape='octagon', style='filled', fillcolor='white')
+        graph.add_node('Port', shape='box', style='filled', fillcolor='white')
+        graph.add_node('Input', shape='invhouse', style='filled', fillcolor='white')
+        graph.subgraph(['Output', 'Port', 'Compute Unit', 'Input'], label='Legend', name='cluster_legend', style='filled', fillcolor='lightgrey')
+
+        # Output graph to file
+        #graph.write('awf.dot')
+        graph.draw('awf.pdf', prog='dot', format='pdf')
+
 
     #
     # Return the input nodes of the graph
