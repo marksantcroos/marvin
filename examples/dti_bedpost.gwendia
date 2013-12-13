@@ -8,7 +8,6 @@
     <constant name="command" type="string" value="mainConvertDTIwrapper.sh" cardinality="scalar" />
     <sink name="result0" type="string" />
     <sink name="resBedpostX" type="string" />
-
   </interface>
 
   <processors>
@@ -18,7 +17,6 @@
       <in name="command" type="string" depth="0" />
       <in name="output-directory" type="string" depth="0" />
       <out name="result0" type="string" depth="0" />
-
       <iterationstrategy>
         <flat-cross>
           <port name="data" />
@@ -27,8 +25,7 @@
           <port name="output-directory" />
         </flat-cross>
       </iterationstrategy>
-      <gasw descriptor="lfn://lfc.grid.sara.nl:5010/grid/vlemed/vkorkhov/preDTI/runbinaryGASWFile-v3.xml" />
-
+      <gasw descriptor="lfn://lfc.grid.sara.nl:5010/grid/vlemed/vkorkhov/preDTI/runbinaryGASWFile-v3.xml"/>
     </processor>
     <processor name="extractBedpostX" >
       <in name="data" type="string" depth="0" />
@@ -38,17 +35,15 @@
         <cross>
           <port name="data" />
           <port name="output-directory" />
-
         </cross>
       </iterationstrategy>
-      <gasw descriptor="lfn://lfc.grid.sara.nl:5010/grid/vlemed/vkorkhov/preDTI/extractBedpostX-gasw.xml" />
+      <gasw descriptor="lfn://lfc.grid.sara.nl:5010/grid/vlemed/vkorkhov/preDTI/extractBedpostX-gasw.xml"/>
     </processor>
   </processors>
 
   <links>
       <link from="data" to="runbinary:data" />
       <link from="runbinary:result0" to="result0" />
-
       <link from="output-directory" to="runbinary:output-directory" />
       <link from="runbinary:result0" to="extractBedpostX:data" />
       <link from="output-directory" to="extractBedpostX:output-directory" />
