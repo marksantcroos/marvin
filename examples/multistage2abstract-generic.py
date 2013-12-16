@@ -180,30 +180,48 @@ if __name__ == '__main__':
 
 
     # M SYSTEMS, G STAGES
-    # INPUTS PER SYSTEM FOR FIRST STAGE ONLY (mineq_coor, mineq_vel, mineq_xsc)
+    # INPUTS PER SYSTEM, FIRST STAGE ONLY (mineq_coor, mineq_vel, mineq_xsc)
     #     - mineq_coor[M]
     #     - mineq_vel[M]
     #     - mineq_xsc[M]
+    #
+    #       input_per_system_first_stage = [ 'mineq_coor', 'mineq_vel', 'mineq_xsc' ]
+    #
     # INPUTS PER STAGE FOR ALL SYSTEMS (conf)
     #     - conf_1 .. conf_G
-    # INPUTS PER SYSTEM FOR ALL STEPS (sys.pdb, sys.parm, sys.crc)
+    #
+    #       input_per_stage_all_systems = [ 'conf' ]
+    #
+    # INPUTS PER SYSTEM FOR ALL STAGES (sys.pdb, sys.parm, sys.crc)
     #     - pdb[M]
     #     - parm[M]
     #     - crc[M]
-    # SINKS PER SYSTEM PER STEP (dcd, cvd, xst, out, err)
+    #
+    #       input_per_system_all_stages = [ 'pdb', 'parm', 'crc' ]
+    #
+    # SINKS PER SYSTEM PER STAGE (dcd, cvd, xst, out, err)
     #     - dcd_1[M] .. dcd_G[M]
     #     - cvd_1[M] .. cvd_G[M]
     #     - xst_1[M] .. xst_G[M]
     #     - out_1[M] .. out_G[M]
     #     - err_1[M] .. err_G[M]
-    # INTERMEDIATE PER SYSTEM PER STEP (coor, vel, xsc)
+    #
+    #       sink_per_system_per_stage = [ 'dcd', 'cvd', 'xst', 'out', 'err' ]
+    #
+    # INTERMEDIATE PER SYSTEM PER STAGE (coor, vel, xsc)
     #     - coor_1[M] .. coor_G[M]
     #     - vel_1[M] .. vel_G[M]
     #     - xsc_1[M] .. xsc_G[M]
-    # SINKS PER SYSTEM FOR FINAL STEP ONLY (coor, vel, xsc)
+    #
+    #       intermediate_per_system_per_stage = [ 'coor', 'vel', 'xsc' ]
+    #
+    # SINKS PER SYSTEM FOR FINAL STAGE ONLY (coor, vel, xsc)
     #     - coor[M]
     #     - vel[M]
     #     - xsc[M]
+    #
+    #       sink_per_system_final_stage = [ 'coor', 'vel', 'xsc' ]
+    #
 
 
     awf = ms2a(NUM_SYSTEMS, NUM_STAGES)
