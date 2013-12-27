@@ -1,6 +1,26 @@
 #!/usr/bin/env python2.6
 
 
+class MultiTaskMultiStage():
+
+    def __init__(self):
+
+        tasks = []
+        stages = []
+
+        task_executable = None
+
+        input_per_task_first_stage = []
+        input_all_tasks_per_stage = []
+        input_per_task_all_stages = []
+        output_per_task_per_stage = []
+        intermediate_per_task_per_stage = []
+        output_per_task_final_stage = []
+
+    def run(self):
+        pass
+
+
 ###############################################################################
 #
 # Main
@@ -8,7 +28,7 @@
 if __name__ == '__main__':
 
     #
-    # Runtime characteristics
+    # Application specific runtime characteristics
     #
     # Number of chromosomes
     NUM_CHRS = 1 # exp:5
@@ -25,20 +45,32 @@ if __name__ == '__main__':
     # Total number of tasks to execute
     #NUM_TASKS = NUM_STAGES * NUM_SYSTEMS
 
+    mtms = MultiTaskMultiStage()
+    mtms.tasks = range(NUM_SYSTEMS)
+    mtms.stages = range(NUM_STAGES)
+    mtms.task_executable = 'namd-script.sh'
 
+    #
     # M SYSTEMS, G STAGES
     # INPUTS PER SYSTEM, FIRST STAGE ONLY (mineq_coor, mineq_vel, mineq_xsc)
     #     - mineq_coor[M]
     #     - mineq_vel[M]
     #     - mineq_xsc[M]
     #
-    input_per_system_first_stage = [ 'mineq_coor', 'mineq_vel', 'mineq_xsc' ]
+    #
+    mtms.input_per_task_first_stage = [
+        'mineq-{TASK}.coor',
+        'mineq-{TASK}.vel',
+        'mineq-{TASK}.xsc'
+    ]
+
     #
     # INPUTS PER STAGE FOR ALL SYSTEMS (conf)
     #     - conf_1 .. conf_G
     #
-    input_per_stage_all_systems = [ 'conf' ]
-
+    mtms.input_all_tasks_per_stage = [
+        'dyn-{STAGE}.conf'
+    ]
 
     #
     # INPUTS PER SYSTEM FOR ALL STAGES (sys.pdb, sys.parm, sys.crc)
@@ -46,8 +78,11 @@ if __name__ == '__main__':
     #     - parm[M]
     #     - crc[M]
     #
-    input_per_system_all_stages = [ 'pdb', 'parm', 'crc' ]
-
+    mtms.input_per_task_all_stages = [
+        'sys-{TASK}.pdb',
+        'sys-{TASK}.parm',
+        'sys-{TASK}.crc'
+    ]
 
     #
     # SINKS PER SYSTEM PER STAGE (dcd, cvd, xst, out, err)
@@ -57,8 +92,13 @@ if __name__ == '__main__':
     #     - out_1[M] .. out_G[M]
     #     - err_1[M] .. err_G[M]
     #
-    sink_per_system_per_stage = [ 'dcd', 'cvd', 'xst', 'out', 'err' ]
-
+    mtms.output_per_task_per_stage = [
+        'dyn-{TASK}-{STAGE}.dcd',
+        'dyn-{TASK}-{STAGE}.cvd',
+        'dyn-{TASK}-{STAGE}.xst',
+        'dyn-{TASK}-{STAGE}.out',
+        'dyn-{TASK}-{STAGE}.err'
+    ]
 
     #
     # INTERMEDIATE PER SYSTEM PER STAGE (coor, vel, xsc)
@@ -66,19 +106,23 @@ if __name__ == '__main__':
     #     - vel_1[M] .. vel_G[M]
     #     - xsc_1[M] .. xsc_G[M]
     #
-    intermediate_per_system_per_stage = [ 'coor', 'vel', 'xsc' ]
-
+    mtms.intermediate_per_task_per_stage = [
+        'dyn-{TASK}-{STAGE}.coor',
+        'dyn-{TASK}-{STAGE}.vel',
+        'dyn-{TASK}-{STAGE}.xsc'
+    ]
 
     #
-    # SINKS PER SYSTEM FOR FINAL STAGE ONLY (coor, vel, xsc)
+    # OUTPUTS PER SYSTEM FOR FINAL STAGE ONLY (coor, vel, xsc)
     #     - coor[M]
     #     - vel[M]
     #     - xsc[M]
     #
-    sink_per_system_final_stage = [ 'coor', 'vel', 'xsc' ]
-    #
+    mtms.output_per_task_final_stage = [
+        'dyn-{TASK}-{STAGE}.coor',
+        'dyn-{TASK}-{STAGE}.vel',
+        'dyn-{TASK}-{STAGE}.xsc'
+    ]
 
 #
 ###############################################################################
-
-
