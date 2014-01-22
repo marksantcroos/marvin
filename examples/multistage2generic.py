@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python
 
 from string import Template
 
@@ -85,24 +85,22 @@ if __name__ == '__main__':
     NUM_SYSTEMS = NUM_CHRS * NUM_LOCS
     # The time of simulation per system
     SIM_TRAJ_TIME = 3 # exp:20
-    # The simulation time per task
+    # The simulation time per dynamic step
     TASK_SIM_TIME = 1
-    # The number of stages per system
-    NUM_STAGES = SIM_TRAJ_TIME / TASK_SIM_TIME
-    # Total number of tasks to execute
-    #NUM_TASKS = NUM_STAGES * NUM_SYSTEMS
+    # The number of dynamic steps per system
+    NUM_STEPS = SIM_TRAJ_TIME / TASK_SIM_TIME
 
     mtms = MultiTaskMultiStage()
     mtms.tasks = range(NUM_SYSTEMS)
-    mtms.stages = range(NUM_STAGES)
+    mtms.stages = range(NUM_STEPS)
     mtms.task_executable = 'namd-script.sh'
 
     #
-    # M SYSTEMS, G STAGES
-    # INPUTS PER SYSTEM, FIRST STAGE ONLY (mineq_coor, mineq_vel, mineq_xsc)
-    #     - mineq_coor[M]
-    #     - mineq_vel[M]
-    #     - mineq_xsc[M]
+    # INPUTS PER SYSTEM(S), FIRST DYNAMIC STEP(D) ONLY
+    # (mineq_coor, mineq_vel, mineq_xsc)
+    #     - mineq_coor[S]
+    #     - mineq_vel[S]
+    #     - mineq_xsc[S]
     #
     #
     mtms.input_per_task_first_stage = [
@@ -112,18 +110,19 @@ if __name__ == '__main__':
     ]
 
     #
-    # INPUTS PER STAGE FOR ALL SYSTEMS (conf)
-    #     - conf_1 .. conf_G
+    # INPUTS PER DYNAMIC STEP(D) FOR ALL SYSTEMS(S) (conf)
+    #     - conf_1 .. conf_D
     #
     mtms.input_all_tasks_per_stage = [
         'dyn-${STAGE}.conf'
     ]
 
     #
-    # INPUTS PER SYSTEM FOR ALL STAGES (sys.pdb, sys.parm, sys.crc)
-    #     - pdb[M]
-    #     - parm[M]
-    #     - crc[M]
+    # INPUTS PER SYSTEM(S) FOR ALL DYNAMIC STEPS(D)
+    # (sys.pdb, sys.parm, sys.crc)
+    #     - pdb[S]
+    #     - parm[S]
+    #     - crc[S]
     #
     mtms.input_per_task_all_stages = [
         'sys-${TASK}.pdb',
@@ -132,12 +131,13 @@ if __name__ == '__main__':
     ]
 
     #
-    # SINKS PER SYSTEM PER STAGE (dcd, cvd, xst, out, err)
-    #     - dcd_1[M] .. dcd_G[M]
-    #     - cvd_1[M] .. cvd_G[M]
-    #     - xst_1[M] .. xst_G[M]
-    #     - out_1[M] .. out_G[M]
-    #     - err_1[M] .. err_G[M]
+    # SINKS PER SYSTEM(S) PER DYNAMIC STEP(D)
+    # (dcd, cvd, xst, out, err)
+    #     - dcd_1[S] .. dcd_D[S]
+    #     - cvd_1[S] .. cvd_D[S]
+    #     - xst_1[S] .. xst_D[S]
+    #     - out_1[S] .. out_D[S]
+    #     - err_1[S] .. err_D[S]
     #
     mtms.output_per_task_per_stage = [
         'dyn-${TASK}-${STAGE}.dcd',
@@ -148,10 +148,11 @@ if __name__ == '__main__':
     ]
 
     #
-    # INTERMEDIATE PER SYSTEM PER STAGE (coor, vel, xsc)
-    #     - coor_1[M] .. coor_G[M]
-    #     - vel_1[M] .. vel_G[M]
-    #     - xsc_1[M] .. xsc_G[M]
+    # INTERMEDIATE PER SYSTEM(S) PER DYNAMIC STEP(D)
+    # (coor, vel, xsc)
+    #     - coor_1[S] .. coor_D[S]
+    #     - vel_1[S] .. vel_D[S]
+    #     - xsc_1[S] .. xsc_D[S]
     #
     mtms.intermediate_per_task_per_stage = [
         'dyn-${TASK}-${STAGE}.coor',
@@ -160,10 +161,11 @@ if __name__ == '__main__':
     ]
 
     #
-    # OUTPUTS PER SYSTEM FOR FINAL STAGE ONLY (coor, vel, xsc)
-    #     - coor[M]
-    #     - vel[M]
-    #     - xsc[M]
+    # OUTPUTS PER SYSTEM(S) FOR FINAL DYNAMIC STEP(D) ONLY
+    # (coor, vel, xsc)
+    #     - coor[S]
+    #     - vel[S]
+    #     - xsc[S]
     #
     mtms.output_per_task_final_stage = [
         'dyn-${TASK}-${STAGE}.coor',
