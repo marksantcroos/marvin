@@ -8,7 +8,7 @@ class Node(object):
     pass
 
 class Constant(Node):
-    __slots__ = ( 'name', 'type', 'value', 'card' )
+    __slots__ = ('name', 'type', 'value', 'card')
 
     def __init__(self):
         self.name = None
@@ -17,14 +17,14 @@ class Constant(Node):
         self.card = None
 
 class Sink(Node):
-    __slots__ = ( 'name', 'type'  )
+    __slots__ = ('name', 'type')
 
     def __init__(self):
         self.name = None
         self.type = None
 
 class Source(Node):
-    __slots__ = ( 'name', 'type'  )
+    __slots__ = ('name', 'type')
 
     def __init__(self):
         self.name = None
@@ -32,7 +32,7 @@ class Source(Node):
 
 class Port(Node):
 
-    __slots__ = ( 'name', 'type', 'depth' )
+    __slots__ = ('name', 'type', 'depth')
 
     def __init__(self):
         self.name = None
@@ -41,7 +41,7 @@ class Port(Node):
 
 class Processor(Node):
 
-    __slots__ = ( 'in', 'out', 'gasw', 'name', 'iter' )
+    __slots__ = ('in', 'out', 'gasw', 'name', 'iter')
 
     def __init__(self):
         self.name = None
@@ -73,7 +73,7 @@ class Iteration(object):
 
 class Link(object):
 
-    __slots__ = ( 'tail', 'head' )
+    __slots__ = ('tail', 'head')
 
     def __init__(self):
         self.tail = None
