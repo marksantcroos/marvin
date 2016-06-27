@@ -170,7 +170,7 @@ class WorkflowHandler(handler.ContentHandler):
 
             self.p_in.name = attributes['name']
             self.p_in.type = attributes['type']
-            self.p_in.depth = attributes['depth']
+            self.p_in.depth = int(attributes['depth'])
 
         elif name == 'out':
             if self.inside_processor != True:
@@ -223,7 +223,7 @@ class WorkflowHandler(handler.ContentHandler):
             node.depth = self.iter_depth
 
 
-        # If p_iter is a PORT we stay at the same level, otherwise nest
+            # If p_iter is a PORT we stay at the same level, otherwise nest
             if self.p_iter.type == 'PORT':
                 self.p_iter.next = node
                 node.parent = self.p_iter.parent

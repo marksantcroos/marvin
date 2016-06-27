@@ -40,13 +40,12 @@ class Source(pykka.ThreadingActor):
 
         for target in self.targets:
             print '[Source:%s] Firing to %s\n' % (self.name, target.get_name().get())
-            target.add_input(self.value).get()
+            target.add_input(self.name, 0, self.value).get()
 
     def populate(self, value):
         print '[Source:%s] Populating with value: %s' % (self.name, value)
         self.value = value
         self.populated = True
-
 #
 ###############################################################################
 
@@ -76,7 +75,7 @@ class Constant(pykka.ThreadingActor):
 
     def _send_input(self, target):
         print '[Constant:%s] Sending input to %s\n' % (self.name, target.get_name().get())
-        target.add_input(self.value).get()
+        target.add_input(self.name, 0, self.value).get()
 
     def fire(self):
         for target in self.targets:
@@ -104,7 +103,7 @@ class Sink(pykka.ThreadingActor):
     def on_stop(self):
         print '[sink:%s] Done, quitting ... ' % (self.name)
 
-    def add_input(self, port, value):
+    def add_input(self, port, index, value):
         print '[Sink:%s] Received input: %s on port: %s' % (self.name, value, port)
         self.inputs.append((port, value))
 
@@ -127,6 +126,7 @@ class Port(pykka.ThreadingActor):
         else:
             return 0
 
+
     def __init__(self, name, port_type, depth):
         super(Port, self).__init__()
         self.name = name
@@ -134,36 +134,55 @@ class Port(pykka.ThreadingActor):
         self.depth = depth
         self.targets = []
 
+
     def on_start(self):
         print '[Port:%s] Starting ... (type: %s, depth: %s)' \
                 % (self.name, self.port_type, self.depth)
 
+
     def on_stop(self):
         print '[Port:%s] Done, quitting ... ' % (self.name)
+
 
     def link_to(self, target):
         print '[Port:%s] Linking to %s' % (self.name, target.get_name().get())
         self.targets.append(target)
 
-    def add_input(self, value):
-        print '[Port:%s] Received value: %s (depth=%s)' % (self.name, value, self._depth(value))
+        # If target is processor, create input ports
+        try:
+            target.add_input_port(self.name.split(':')[1], self.port_type, self.depth).get()
+        except AttributeError as e:
+            pass
+
+
+    def add_input(self, port, index, value):
+        print '[Port:%s] Received value: %s (depth=%d)' % (self.name, value, self._depth(value))
         self.value = value
 
         if self._depth(value) == 0:
-            self._send_input(value)
+            self._send_input(0, value)
         elif self._depth(value) == 1:
-            for v in self.value:
-                self._send_input(v)
+            for i, v in enumerate(value):
+                self._send_input(i, v)
         else:
-            raise Exception('Higher depth not yet implemented')
+            raise Exception('Depth > 1 not implemented.')
 
-    def _send_input(self, value):
+
+    def _send_input(self, index, value):
         for target in self.targets:
-            print '[Port:%s] Sending value: %s to %s' % (self.name, value, target)
-            target.add_input(value).get()
+            print '[Port:%s] Sending value[%d]: %s to %s' % (self.name, index, value, target.get_name().get())
+            target.add_input(self.name.split(':')[1], index, value).get()
+
 
     def get_name(self):
         return self.name
+
+    def get_type(self):
+        return self.port_type
+
+    def get_depth(self):
+        return self.depth
+
 
 #
 ###############################################################################
@@ -173,62 +192,177 @@ class Port(pykka.ThreadingActor):
 # Processor Actor
 #
 class Processor(pykka.ThreadingActor):
-    def __init__(self, name):
+    def __init__(self, name, gasw, iter, umgr):
         super(Processor, self).__init__()
         self.name = name
+        self.gasw = gasw
+        self.iter = iter
         self.targets = []
+        self.umgr = umgr
+
+        self.actor_refs = []
+        self.actor_proxies = {}
+
+        self.task_index = 0
 
 
     def on_start(self):
+        print '[Processor:%s] Starting ... ' % (self.name)
         self.input_ports = {}
         self.output_ports = {}
         self.inputs = {}
-
-    def run(self):
-        print '[Processor:%s] Running ...' % (self.name)
-
-        if self.name == 'Square':
-            print '[Processor:%s] running' % (self.name)
-
-            for (_, value) in self.inputs:
-                input = value
-                output = input * input
-                print 'Im a squarer!\nInput: %s Output: %s' % (input, output)
-
-        elif self.name == 'Multiplier':
-            input1 = self.inputs['left']
-            input2 = self.inputs['right']
-            output = input1 * input2
-            print 'Im a multiplier!\nInput1: %s Input2: %s Output: %s' % (input1, input2, output)
+        # self.outputs = {}
 
 
-            target, port = self.target
-            target.add_input(port, output).get()
+    def on_stop(self):
+        print '[Processor:%s] Done, quitting ... ' % (self.name)
+
+        for ref in self.actor_refs:
+            ref.stop()
+
 
 
     def link_to(self, target):
         print '[Processor:%s] Linking to %s' % (self.name, target.get_name().get())
         self.targets.append(target)
+        self.add_output_port(target)
+
 
     def get_name(self):
         return self.name
 
-    def add_input_port(self, name, proxy, type, depth):
-        self.input_ports[name] = (proxy, type, depth)
-        self.inputs[name] = []
 
-    def add_output_port(self, name, type, depth):
-        self.output_ports[name] = (type, depth)
-        self.outputs[name] = []
-
-    def add_input(self, value):
-        print '[Processor:%s] Received input: %s on port: %s' % (self.name, value, 'unknown')
-        #self.inputs[port] = value
+    def add_input_port(self, name, port_type, depth):
+        print '[Processor:%s] Add input port %s(%s)[%d]' % (self.name, name, port_type, depth)
+        self.input_ports[name] = {'type': port_type, 'depth': depth}
+        self.inputs[name] = {}
 
 
+    def add_output_port(self, proxy):
+        name = proxy.get_name().get().split(':')[1],
+        port_type = proxy.get_type().get()
+        depth = proxy.get_depth().get()
+        print '[Processor:%s] Add output port %s(%s)[%d]' % (self.name, name, port_type, depth)
+        self.output_ports[name] = {'type': port_type, 'depth': depth, 'proxy': proxy}
+        # self.outputs[name] = {}
+
+
+    def add_input(self, port, index, value):
+        print '[Processor:%s] Received input[%d]: %s on port: %s' % (self.name, index, value, port)
+        self.inputs[port][index] = value
+
+        for ip in self.input_ports:
+            try:
+                if self.inputs[ip][index] == None:
+                    print "[Processor:%s] Has NULL value at index[%d]" % (self.name, index)
+                    return
+            except:
+                print "[Processor:%s] Not all input ports have a value at index[%d]" % (self.name, index)
+                return
+
+        print "[Processor:%s] All input ports have a value at index[%d]" % (self.name, index)
+
+        self.create_task(index)
+
+
+    def create_task(self, index):
+        name = '%s[%d]' % (self.name, self.task_index)
+        self.task_index += 1
+        input = {ip: self.inputs[ip][index] for ip in self.inputs}
+        ref = Task.start(name, self.gasw, input, self.output_ports, self.umgr)
+        self.actor_refs.append(ref)
+        self.actor_proxies[name] = ref.proxy()
 
 #
 ################################################################################
+
+
+
+###############################################################################
+#
+# Task Actor
+#
+class Task(pykka.ThreadingActor):
+    def __init__(self, name, gasw, input, output_ports, umgr):
+        super(Task, self).__init__()
+        self.name = name
+        self.gasw = gasw
+        self.input = input
+        self.output_ports = output_ports
+        self.umgr = umgr
+        self.cu_id = None
+        self.lock = threading.RLock ()
+
+    def on_start(self):
+        print '[Task:%s] Starting %s with %s ...' % (self.name, self.gasw, self.input)
+
+        self.submit_cu()
+
+
+    def submit_cu(self):
+        gasw_desc = gasw_repo.get(self.gasw)
+
+        cud = rp.ComputeUnitDescription()
+        # cud.executable = "/bin/bash"
+        # cud.arguments = ["-c", "echo %s && sleep %s" % (self.name, 0)]
+        cud.executable = gasw_desc['executable']
+        cud.arguments = gasw_desc['arguments']
+        cu = self.umgr.submit_units(cud)
+        self.cu_id = cu.uid
+
+        print '[Task:%s] Launching %s (%s) %s...' % (self.name, gasw_desc['executable'], self.cu_id, self.input)
+
+        cu.register_callback(self.cu_cb)
+
+
+    def cu_cb(self, unit, state):
+        print "[Callback]: unit[%s]:'%s' on %s: %s." % (unit.uid, self.name, unit.pilot_id, state)
+
+        if state == rp.DONE:
+            if unit.uid != self.cu_id:
+                print "ERROR: Callback is not for me!!!!"
+
+            self.cu_done()
+
+    def cu_done(self):
+
+        print '[Task:%s] Sending output to %s' % (self.name, self.output_ports.keys())
+        for op in self.output_ports:
+            depth = self.output_ports[op]['proxy'].get_depth().get()
+            print '[Task:%s] output port has depth: %d' % (self.name, depth)
+
+            if depth == 0:
+                value = 42
+            elif depth == 1:
+                chunks = int(self.input['in_chunks'])
+                value = [42] * chunks
+
+            self.output_ports[op]['proxy'].add_input(self.name, depth, value).get()
+
+        self.stop()
+
+    # def run(self):
+    #     print '[Processor:%s] Running ...' % (self.name)
+    #
+    #     if self.name == 'Square':
+    #         print '[Processor:%s] running' % (self.name)
+    #
+    #         for (_, value) in self.inputs:
+    #             input = value
+    #             output = input * input
+    #             print 'Im a squarer!\nInput: %s Output: %s' % (input, output)
+    #
+    #     elif self.name == 'Multiplier':
+    #         input1 = self.inputs['left']
+    #         input2 = self.inputs['right']
+    #         output = input1 * input2
+    #         print 'Im a multiplier!\nInput1: %s Input2: %s Output: %s' % (input1, input2, output)
+    #
+    #         target, port = self.target
+    #         target.add_input(port, output).get()
+
+    def on_stop(self):
+        print '[Task:%s] Done, quitting ... ' % (self.name)
 
 
 ################################################################################
@@ -261,12 +395,6 @@ class ConcreteWF(object):
                 self.actor_refs.append(ref)
                 self.actor_proxies[n.name] = ref.proxy()
 
-                # for f,t,d in self.awf.graph.out_edges(n, data=True):
-                #     print 'Assigning Constant "%s" ("%s") to "%s"' % \
-                #         (n.name, n.value, d['dest'])
-                #     d['values'] = [n.value]
-                #     d['hot'] = True
-
 
             if isinstance(n, abstractwf.Source):
                 print 'Creating actor for Source:', n.name
@@ -283,30 +411,12 @@ class ConcreteWF(object):
                     raise Exception('Input not provided for port:' + n.name)
 
 
-
-                #
-                # for f,t,d in self.awf.graph.out_edges(n, data=True):
-                #     print 'Assigning Source "%s" values to "%s"' \
-                #             % (n.name, d['dest'])
-                    #
-                    # for i in inputdata:
-                    #     if i.s_name == n.name:
-                    #         d['values'] = i.s_items
-                    #
-                    # d['hot'] = True
-              
         for n in self.awf.list_proc_nodes():
             print 'Creating actor for Processor:', n.name
 
-            ref = Processor.start(n.name)
+            ref = Processor.start(n.name, n.gasw, n.iter, umgr)
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
-
-            # Set all processors as hot XXX Why?
-            # n.hot = True
-            # for f,t,d in self.awf.graph.in_edges(n, data=True):
-            #     if not ('hot' in d and d['hot'] is True):
-            #         n.hot = False
 
 
         for n in self.awf.list_output_nodes():
@@ -316,6 +426,7 @@ class ConcreteWF(object):
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 
+
         for n in self.awf.list_port_nodes():
             print 'Creating actor for Port:', n.name
 
@@ -323,82 +434,22 @@ class ConcreteWF(object):
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 
+
         for e in self.awf.list_edges(self.awf.graph.nodes()):
-            print 'Creating edges between Actors ...'
-            print e[0].name, e[1].name
+            # print 'Creating edges between Actors ...'
+            # print e[0].name, e[1].name
 
             self.actor_proxies[e[0].name].link_to(self.actor_proxies[e[1].name]).get()
+
 
         for n in self.awf.list_input_nodes():
             self.actor_proxies[n.name].fire().get()
 
 
-
-
-
-    #
-    # Draw and display the graph
-    #
-    def instantiate(self):
-        print 'Executing workflow'
-
-        for n in self.awf.proc_nodes():
-            if n.hot is True:
-                print 'Going to execute:', n.name
-
-                if not n.iter_strat:
-                    raise('No iteration strategy')
-                else:
-                    strat = n.iter_strat.i_strat
-                    ports = n.iter_strat.i_ports
-
-                if strat == 'dot':
-                    pass
-
-                elif strat == 'cross':
-                    pass
-
-                elif strat == 'flat-cross':
-                    print 'Creating flat-cross processor'
-
-                    port_inputs = []
-                    
-                    for p in ports:
-                        print 'Ports:', p
-
-                        for f,t,d in self.awf.graph.in_edges(n, data=True):
-                            in_port = string.split(d['dest'], ':', 1)[1]
-
-                            if in_port == p:
-                                print 'found matching incoming port:', p
-                                print 'length:', len(d['values'])
-                                print d['values']
-                                
-                                port_inputs.append(d['values'])
-                                
-                    print 'port inputs:', port_inputs
-                    
-                    
-                    cross = self.cross_product(port_inputs)
-
-                    nr_instances = len(cross)
-                    print 'Required concrete instances:', nr_instances
-                    
-                    for para in cross:
-                        inst = Instance(para)
-                        self.executor.add(inst)
-                        
-                elif strat == 'match':
-                    pass
-
-                else:
-                    raise('Unknown iteration strategy')
-
-
     def deinit(self):
         print 'Stopping all actors.'
-        import time
-        time.sleep(1)
+        # import time
+        # time.sleep(1)
         for ref in self.actor_refs:
             ref.stop()
         print 'All actors stopped.'
