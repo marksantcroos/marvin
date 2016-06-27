@@ -388,20 +388,29 @@ class Task(pykka.ThreadingActor):
         cud = rp.ComputeUnitDescription()
         # cud.executable = "/bin/bash"
         # cud.arguments = ["-c", "echo %s && sleep %s" % (self.name, 0)]
-        cud.executable = gasw_desc['executable']
-        cud.arguments = gasw_desc['arguments']
+        # cud.executable = gasw_desc['executable']
+        # cud.arguments = gasw_desc['arguments']
+        cud.executable = "/bin/sh"
+        cud.arguments = ["-c", "echo %s > STDOUT && %s %s" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']))]
         cu = self.umgr.submit_units(cud)
         self.cu_id = cu.uid
 
         print '[Task:%s] Launching %s (%s) %s...' % (self.name, gasw_desc['executable'], self.cu_id, self.input)
 
+        # self.cb_hist[self.cu_id] = []
         cu.register_callback(self.cu_cb)
 
 
     ###########################################################################
     #
     def cu_cb(self, unit, state):
-        print "[Callback]: unit[%s]:'%s' on %s: %s." % (unit.uid, self.name, unit.pilot_id, state)
+        print "[Callback]: %s unit[%s]:'%s' on %s: %s." % (self.actor_urn, unit.uid, self.name, unit.pilot_id, state)
+
+        # print "[SchedulerCallback]: unit state callback history: %s" % (self.cb_hist)
+        # if state in [rp.UNSCHEDULED] and rp.SCHEDULING in self.cb_hist[unit.uid]:
+        #     print "[SchedulerCallback]: ComputeUnit %s with state %s already dealt with." % (unit.uid, state)
+        #     return
+        # self.cb_hist[unit.uid].append(state)
 
         if state == rp.DONE:
             if unit.uid != self.cu_id:
