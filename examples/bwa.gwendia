@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow name="BWA">
+    <interface>
+        <source name="csFasta" type="string"/>
+        <source name="qual" type="string"/>
+        <source name="ReferenceTarGz" type="string"/>
+        <constant name="chunks" type="string" value="1" cardinality="scalar" />
+        <sink name="Bai" type="string"/>
+        <sink name="Bam" type="string"/>
+    </interface>
+    <processors>
+        <processor name="solid-to-fastq">
+            <in name="in_csfasta" type="string" depth="0"/>
+            <in name="in_qual" type="string" depth="0"/>
+            <iterationstrategy>
+                <dot>
+                    <port name="in_fsfasta"/>
+                    <port name="in_qual"/>
+                </dot>
+            </iterationstrategy>
+            <gasw descriptor="s2f.gasw"/>
+            <out name="out_fastq" type="string" depth="0"/>
+        </processor>
+        <processor name="split-fastq">
+            <in name="in_fastq" type="string" depth="0"/>
+            <in name="in_chunks" type="string" depth="0"/>
+            <out name="out_fastq" type="string" depth="1"/>
+            <gasw descriptor="split.gasw"/>
+        </processor>
+        <processor name="bwa">
+            <in name="in_fastq" type="string" depth="0"/>
+            <in name="in_ReferenceTarGz" type="string" depth="0"/>
+            <iterationstrategy>
+                <dot>
+                    <port name="in_fastq"/>
+                    <port name="in_ReferenceTarGz"/>
+                </dot>
+            </iterationstrategy>
+            <gasw descriptor="bwa.gasw"/>
+            <out name="out_bam" type="string" depth="0"/>
+        </processor>
+        <processor name="merge-bam">
+            <in name="in_bam" type="string" depth="0"/>
+            <out name="out_bam" type="string" depth="0"/>
+            <out name="out_bai" type="string" depth="0"/>
+            <gasw descriptor="merge.gasw"/>
+        </processor>
+    </processors>
+    <links>
+        <link from="csFasta" to="solid-to-fastq:in_csfasta"/>
+        <link from="qual" to="solid-to-fastq:in_qual"/>
+        <link from="solid-to-fastq:out_fastq" to="split-fastq:in_fastq"/>
+        <link from="chunks" to="split-fastq:in_chunks"/>
+        <link from="split-fastq:out_fastq" to="bwa:in_fastq"/>
+        <link from="ReferenceTarGz" to="bwa:in_ReferenceTarGz"/>
+        <link from="bwa:out_bam" to="merge-bam:in_bam"/>
+        <link from="merge-bam:out_bam" to="Bam"/>
+        <link from="merge-bam:out_bai" to="Bai"/>
+    </links>
+</workflow>
