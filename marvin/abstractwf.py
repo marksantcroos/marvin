@@ -191,11 +191,12 @@ class AbstractWF(object):
 
 
         # Create legend
-        graph.add_node('Output', shape='diamond', style='filled', fillcolor='white')
+        graph.add_node('Sink', shape='diamond', style='filled', fillcolor='white')
         graph.add_node('Compute Unit', shape='octagon', style='filled', fillcolor='white')
         graph.add_node('Port', shape='box', style='filled', fillcolor='white')
-        graph.add_node('Input', shape='invhouse', style='filled', fillcolor='white')
-        graph.subgraph(['Output', 'Port', 'Compute Unit', 'Input'], label='Legend', name='cluster_legend', style='filled', fillcolor='lightgrey')
+        graph.add_node('Source', shape='invhouse', style='filled', fillcolor='white')
+        graph.add_node('Constant', shape='invtriangle', style='filled', fillcolor='white')
+        graph.subgraph(['Sink', 'Port', 'Compute Unit', 'Source', 'Constant'], label='Legend', name='cluster_legend', style='filled', fillcolor='lightgrey')
 
         # Output graph to file
         #graph.write('awf.dot')
