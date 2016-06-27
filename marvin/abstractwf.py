@@ -129,8 +129,10 @@ class AbstractWF(object):
     #
     # Draw and display the graph with pygraphviz
     #
-    def pg_draw(self):
+    def pg_draw(self, filename):
 
+        if not filename:
+            raise Exception('Filename not specified')
         graph = pg.AGraph()
 
         for nx_node in self.graph.nodes():
@@ -197,7 +199,7 @@ class AbstractWF(object):
 
         # Output graph to file
         #graph.write('awf.dot')
-        graph.draw('awf.pdf', prog='dot', format='pdf')
+        graph.draw('%s.pdf' % filename, prog='dot', format='pdf')
 
 
     #
