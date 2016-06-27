@@ -84,8 +84,8 @@ if __name__ == '__main__':
 
     #gwendia_xml_file = 'iter-test.gwendia'
 
-    gwendia_xml_file = 'bwa.gwendia'
-    input_file = 'bwa_input.xml'
+    gwendia_xml_file = '../examples/bwa.gwendia'
+    input_file = '../examples/bwa_input.xml'
 
     ix = marvin.InputDataXML()
     ix.read_from_file(input_file)
