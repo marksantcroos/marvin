@@ -8,7 +8,6 @@ import time
 from gasw import gasw_repo
 
 import radical.pilot as rp
-import threading
 
 ###############################################################################
 #
@@ -18,22 +17,37 @@ import threading
 # Will receive input values from Main process and will manage and forward the values to the connected nodes
 #
 class Source(pykka.ThreadingActor):
+
+    ###########################################################################
+    #
     def __init__(self, name):
         super(Source, self).__init__()
         self.name = name
         self.targets = []
 
+
+    ###########################################################################
+    #
     def on_start(self):
         self.populated = False
         print '[Source:%s] Starting ... ' % (self.name)
 
+
+    ###########################################################################
+    #
     def on_stop(self):
         print '[Source:%s] Done, quitting ... ' % (self.name)
 
+
+    ###########################################################################
+    #
     def link_to(self, target):
         print '[Source:%s] Linking to %s\n' % (self.name, target.get_name().get())
         self.targets.append(target)
 
+
+    ###########################################################################
+    #
     def fire(self):
         if not self.populated:
             raise Exception("Tried to link, but not yet populated!")
@@ -42,12 +56,16 @@ class Source(pykka.ThreadingActor):
             print '[Source:%s] Firing to %s\n' % (self.name, target.get_name().get())
             target.add_input(self.name, 0, self.value).get()
 
+
+    ###########################################################################
+    #
     def populate(self, value):
         print '[Source:%s] Populating with value: %s' % (self.name, value)
         self.value = value
         self.populated = True
 #
 ###############################################################################
+
 
 ###############################################################################
 #
@@ -57,34 +75,48 @@ class Source(pykka.ThreadingActor):
 # Will receive input values from Main process and will manage and forward the values to the connected nodes
 #
 class Constant(pykka.ThreadingActor):
+
+    ###########################################################################
+    #
     def __init__(self, name, value):
         super(Constant, self).__init__()
         self.name = name
         self.value = value
         self.targets = []
 
+
+    ###########################################################################
+    #
     def on_start(self):
         print '[Constant:%s] Starting with value: %s... ' % (self.name, self.value)
 
+
+    ###########################################################################
+    #
     def on_stop(self):
         print '[Constant:%s] Done, quitting ... ' % (self.name)
 
+
+    ###########################################################################
+    #
     def link_to(self, target):
         print '[Constant:%s] Linking to %s\n' % (self.name, target.get_name().get())
         self.targets.append(target)
 
+
+    ###########################################################################
+    #
     def _send_input(self, target):
         print '[Constant:%s] Sending input to %s\n' % (self.name, target.get_name().get())
         target.add_input(self.name, 0, self.value).get()
 
+
+    ###########################################################################
+    #
     def fire(self):
         for target in self.targets:
             print '[Constant:%s] Firing to %s\n' % (self.name, target.get_name().get())
             self._send_input(target)
-
-
-#
-###############################################################################
 
 
 ###############################################################################
@@ -92,26 +124,38 @@ class Constant(pykka.ThreadingActor):
 # Sink Actor
 #
 class Sink(pykka.ThreadingActor):
+
+    ###########################################################################
+    #
     def __init__(self, name):
         super(Sink, self).__init__()
         self.name = name
 
+
+    ###########################################################################
+    #
     def on_start(self):
         self.inputs = []
         print '[Sink:%s] Starting ... ' % (self.name)
 
+
+    ###########################################################################
+    #
     def on_stop(self):
         print '[sink:%s] Done, quitting ... ' % (self.name)
 
+
+    ###########################################################################
+    #
     def add_input(self, port, index, value):
         print '[Sink:%s] Received input: %s on port: %s' % (self.name, value, port)
         self.inputs.append((port, value))
 
+
+    ###########################################################################
+    #
     def get_name(self):
         return self.name
-
-#
-###############################################################################
 
 
 ###############################################################################
@@ -120,6 +164,8 @@ class Sink(pykka.ThreadingActor):
 #
 class Port(pykka.ThreadingActor):
 
+    ###########################################################################
+    #
     def _depth(self, l):
         if isinstance(l, list):
             return 1 + max(self._depth(item) for item in l)
@@ -127,6 +173,8 @@ class Port(pykka.ThreadingActor):
             return 0
 
 
+    ###########################################################################
+    #
     def __init__(self, name, port_type, depth):
         super(Port, self).__init__()
         self.name = name
@@ -135,15 +183,21 @@ class Port(pykka.ThreadingActor):
         self.targets = []
 
 
+    ###########################################################################
+    #
     def on_start(self):
         print '[Port:%s] Starting ... (type: %s, depth: %s)' \
                 % (self.name, self.port_type, self.depth)
 
 
+    ###########################################################################
+    #
     def on_stop(self):
         print '[Port:%s] Done, quitting ... ' % (self.name)
 
 
+    ###########################################################################
+    #
     def link_to(self, target):
         print '[Port:%s] Linking to %s' % (self.name, target.get_name().get())
         self.targets.append(target)
@@ -155,6 +209,8 @@ class Port(pykka.ThreadingActor):
             pass
 
 
+    ###########################################################################
+    #
     def add_input(self, port, index, value):
         print '[Port:%s] Received value: %s (depth=%d)' % (self.name, value, self._depth(value))
         self.value = value
@@ -168,30 +224,39 @@ class Port(pykka.ThreadingActor):
             raise Exception('Depth > 1 not implemented.')
 
 
+    ###########################################################################
+    #
     def _send_input(self, index, value):
         for target in self.targets:
             print '[Port:%s] Sending value[%d]: %s to %s' % (self.name, index, value, target.get_name().get())
             target.add_input(self.name.split(':')[1], index, value).get()
 
 
+    ###########################################################################
+    #
     def get_name(self):
         return self.name
 
+
+    ###########################################################################
+    #
     def get_type(self):
         return self.port_type
 
+
+    ###########################################################################
+    #
     def get_depth(self):
         return self.depth
 
-
-#
-###############################################################################
 
 ###############################################################################
 #
 # Processor Actor
 #
 class Processor(pykka.ThreadingActor):
+    ###########################################################################
+    #
     def __init__(self, name, gasw, iter, umgr):
         super(Processor, self).__init__()
         self.name = name
@@ -206,6 +271,8 @@ class Processor(pykka.ThreadingActor):
         self.task_index = 0
 
 
+    ###########################################################################
+    #
     def on_start(self):
         print '[Processor:%s] Starting ... ' % (self.name)
         self.input_ports = {}
@@ -214,6 +281,8 @@ class Processor(pykka.ThreadingActor):
         # self.outputs = {}
 
 
+    ###########################################################################
+    #
     def on_stop(self):
         print '[Processor:%s] Done, quitting ... ' % (self.name)
 
@@ -222,22 +291,30 @@ class Processor(pykka.ThreadingActor):
 
 
 
+    ###########################################################################
+    #
     def link_to(self, target):
         print '[Processor:%s] Linking to %s' % (self.name, target.get_name().get())
         self.targets.append(target)
         self.add_output_port(target)
 
 
+    ###########################################################################
+    #
     def get_name(self):
         return self.name
 
 
+    ###########################################################################
+    #
     def add_input_port(self, name, port_type, depth):
         print '[Processor:%s] Add input port %s(%s)[%d]' % (self.name, name, port_type, depth)
         self.input_ports[name] = {'type': port_type, 'depth': depth}
         self.inputs[name] = {}
 
 
+    ###########################################################################
+    #
     def add_output_port(self, proxy):
         name = proxy.get_name().get().split(':')[1],
         port_type = proxy.get_type().get()
@@ -247,6 +324,8 @@ class Processor(pykka.ThreadingActor):
         # self.outputs[name] = {}
 
 
+    ###########################################################################
+    #
     def add_input(self, port, index, value):
         print '[Processor:%s] Received input[%d]: %s on port: %s' % (self.name, index, value, port)
         self.inputs[port][index] = value
@@ -265,6 +344,8 @@ class Processor(pykka.ThreadingActor):
         self.create_task(index)
 
 
+    ###########################################################################
+    #
     def create_task(self, index):
         name = '%s[%d]' % (self.name, self.task_index)
         self.task_index += 1
@@ -273,9 +354,6 @@ class Processor(pykka.ThreadingActor):
         self.actor_refs.append(ref)
         self.actor_proxies[name] = ref.proxy()
 
-#
-################################################################################
-
 
 
 ###############################################################################
@@ -283,6 +361,8 @@ class Processor(pykka.ThreadingActor):
 # Task Actor
 #
 class Task(pykka.ThreadingActor):
+    ###########################################################################
+    #
     def __init__(self, name, gasw, input, output_ports, umgr):
         super(Task, self).__init__()
         self.name = name
@@ -291,14 +371,17 @@ class Task(pykka.ThreadingActor):
         self.output_ports = output_ports
         self.umgr = umgr
         self.cu_id = None
-        self.lock = threading.RLock ()
 
+    ###########################################################################
+    #
     def on_start(self):
         print '[Task:%s] Starting %s with %s ...' % (self.name, self.gasw, self.input)
 
         self.submit_cu()
 
 
+    ###########################################################################
+    #
     def submit_cu(self):
         gasw_desc = gasw_repo.get(self.gasw)
 
@@ -315,6 +398,8 @@ class Task(pykka.ThreadingActor):
         cu.register_callback(self.cu_cb)
 
 
+    ###########################################################################
+    #
     def cu_cb(self, unit, state):
         print "[Callback]: unit[%s]:'%s' on %s: %s." % (unit.uid, self.name, unit.pilot_id, state)
 
@@ -324,6 +409,9 @@ class Task(pykka.ThreadingActor):
 
             self.cu_done()
 
+
+    ###########################################################################
+    #
     def cu_done(self):
 
         print '[Task:%s] Sending output to %s' % (self.name, self.output_ports.keys())
@@ -341,37 +429,23 @@ class Task(pykka.ThreadingActor):
 
         self.stop()
 
-    # def run(self):
-    #     print '[Processor:%s] Running ...' % (self.name)
-    #
-    #     if self.name == 'Square':
-    #         print '[Processor:%s] running' % (self.name)
-    #
-    #         for (_, value) in self.inputs:
-    #             input = value
-    #             output = input * input
-    #             print 'Im a squarer!\nInput: %s Output: %s' % (input, output)
-    #
-    #     elif self.name == 'Multiplier':
-    #         input1 = self.inputs['left']
-    #         input2 = self.inputs['right']
-    #         output = input1 * input2
-    #         print 'Im a multiplier!\nInput1: %s Input2: %s Output: %s' % (input1, input2, output)
-    #
-    #         target, port = self.target
-    #         target.add_input(port, output).get()
 
+    ###########################################################################
+    #
     def on_stop(self):
         print '[Task:%s] Done, quitting ... ' % (self.name)
 
 
-################################################################################
+###############################################################################
 #
 class ConcreteWF(object):
 
+    ###########################################################################
+    #
     def __init__(self):
         pass
 
+    ###########################################################################
     #
     # Create an abstract graph out of the internal workflow format 
     # that was read from file
@@ -446,10 +520,10 @@ class ConcreteWF(object):
             self.actor_proxies[n.name].fire().get()
 
 
+    ###########################################################################
+    #
     def deinit(self):
         print 'Stopping all actors.'
-        # import time
-        # time.sleep(1)
         for ref in self.actor_refs:
             ref.stop()
         print 'All actors stopped.'
