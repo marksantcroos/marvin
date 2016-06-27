@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
-import string
 import abstractwf
 import pykka
 
+import time
 
+from gasw import gasw_repo
+
+import radical.pilot as rp
+import threading
 
 ###############################################################################
 #
@@ -238,10 +242,11 @@ class ConcreteWF(object):
     # Create an abstract graph out of the internal workflow format 
     # that was read from file
     #
-    def init(self, awf, inputdata):
+    def init(self, awf, inputdata, umgr):
         print 'Creating concrete workflow'
 
         self.awf = awf
+        self.umgr = umgr
 
         self.actor_proxies = {}
         self.actor_refs = []
