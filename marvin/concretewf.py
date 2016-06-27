@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-import abstractwf
 import pykka
-
 import time
 
-from gasw import gasw_repo
-
 import radical.pilot as rp
+
+import abstractwf
+from gasw import gasw_repo
 
 ###############################################################################
 #
@@ -24,19 +23,25 @@ class Source(pykka.ThreadingActor):
         super(Source, self).__init__()
         self.name = name
         self.targets = []
+        self.populated = False
 
 
     ###########################################################################
     #
     def on_start(self):
-        self.populated = False
         print '[Source:%s] Starting ... ' % (self.name)
 
 
     ###########################################################################
     #
     def on_stop(self):
-        print '[Source:%s] Done, quitting ... ' % (self.name)
+        print '[Source:%s] quitting ... ' % (self.name)
+
+        for target in self.targets:
+            print '[Source:%s] Notifying to %s that Im done!\n' % (self.name, target.get_name().get())
+            target.notify_complete(self.name).get()
+
+        print '[Source:%s] Done!' % (self.name)
 
 
     ###########################################################################
@@ -56,6 +61,8 @@ class Source(pykka.ThreadingActor):
             print '[Source:%s] Firing to %s\n' % (self.name, target.get_name().get())
             target.add_input(self.name, 0, self.value).get()
 
+        self.stop()
+
 
     ###########################################################################
     #
@@ -63,8 +70,6 @@ class Source(pykka.ThreadingActor):
         print '[Source:%s] Populating with value: %s' % (self.name, value)
         self.value = value
         self.populated = True
-#
-###############################################################################
 
 
 ###############################################################################
@@ -94,7 +99,13 @@ class Constant(pykka.ThreadingActor):
     ###########################################################################
     #
     def on_stop(self):
-        print '[Constant:%s] Done, quitting ... ' % (self.name)
+        print '[Constant:%s] quitting ... ' % (self.name)
+
+        for target in self.targets:
+            print '[Constant:%s] Notifying to %s that Im done!\n' % (self.name, target.get_name().get())
+            target.notify_complete(self.name).get()
+
+        print '[Constant:%s] Done!' % (self.name)
 
 
     ###########################################################################
@@ -118,6 +129,8 @@ class Constant(pykka.ThreadingActor):
             print '[Constant:%s] Firing to %s\n' % (self.name, target.get_name().get())
             self._send_input(target)
 
+        self.stop()
+
 
 ###############################################################################
 #
@@ -130,19 +143,21 @@ class Sink(pykka.ThreadingActor):
     def __init__(self, name):
         super(Sink, self).__init__()
         self.name = name
+        self.inputs = []
 
 
     ###########################################################################
     #
     def on_start(self):
-        self.inputs = []
         print '[Sink:%s] Starting ... ' % (self.name)
 
 
     ###########################################################################
     #
     def on_stop(self):
-        print '[sink:%s] Done, quitting ... ' % (self.name)
+        print '[Sink:%s] quitting ... ' % (self.name)
+        print '[Sink:%s] results received: %s' % (self.name, self.inputs)
+        print '[Sink:%s] Done.' % (self.name)
 
 
     ###########################################################################
@@ -156,6 +171,14 @@ class Sink(pykka.ThreadingActor):
     #
     def get_name(self):
         return self.name
+
+
+    ###########################################################################
+    #
+    def notify_complete(self, port):
+        print '[Sink:%s] Received completion notification from: %s' % (self.name, port)
+        self.complete = True
+        self.stop()
 
 
 ###############################################################################
@@ -181,6 +204,7 @@ class Port(pykka.ThreadingActor):
         self.port_type = port_type
         self.depth = depth
         self.targets = []
+        self.complete = False
 
 
     ###########################################################################
@@ -193,7 +217,13 @@ class Port(pykka.ThreadingActor):
     ###########################################################################
     #
     def on_stop(self):
-        print '[Port:%s] Done, quitting ... ' % (self.name)
+        print '[Port:%s] quitting ... ' % (self.name)
+
+        for target in self.targets:
+            print '[Port:%s] Sending completion notification to %s' % (self.name, target.get_name().get())
+            target.notify_complete(self.name.split(':')[1]).get()
+
+        print '[Port:%s] Done!' % (self.name)
 
 
     ###########################################################################
@@ -222,6 +252,14 @@ class Port(pykka.ThreadingActor):
                 self._send_input(i, v)
         else:
             raise Exception('Depth > 1 not implemented.')
+
+
+    ###########################################################################
+    #
+    def notify_complete(self, port):
+        print '[Port:%s] Received completion notification from: %s' % (self.name, port)
+        self.complete = True
+        self.stop()
 
 
     ###########################################################################
@@ -255,6 +293,7 @@ class Port(pykka.ThreadingActor):
 # Processor Actor
 #
 class Processor(pykka.ThreadingActor):
+
     ###########################################################################
     #
     def __init__(self, name, gasw, iter, umgr):
@@ -266,29 +305,75 @@ class Processor(pykka.ThreadingActor):
         self.umgr = umgr
 
         self.actor_refs = []
-        self.actor_proxies = {}
+        # self.actor_proxies = {}
 
         self.task_index = 0
+        self.inputs_complete = False
 
+        self.running_tasks = 0
 
-    ###########################################################################
-    #
-    def on_start(self):
-        print '[Processor:%s] Starting ... ' % (self.name)
         self.input_ports = {}
         self.output_ports = {}
         self.inputs = {}
         # self.outputs = {}
 
+    ###########################################################################
+    #
+    def on_start(self):
+        print '[Processor:%s] Starting ... ' % (self.name)
+
 
     ###########################################################################
     #
     def on_stop(self):
-        print '[Processor:%s] Done, quitting ... ' % (self.name)
 
-        for ref in self.actor_refs:
-            ref.stop()
+        print '[Processor:%s] quitting ... ' % (self.name)
 
+        for target in self.targets:
+            print '[Processor:%s] Sending completion notification to %s' % (self.name, target.get_name().get())
+            target.notify_complete(self.name).get()
+
+        print '[Processor:%s] Done!' % (self.name)
+
+        # TODO: When to stop child tasks? (if at all)
+        # for ref in self.actor_refs:
+        #     ref.stop()
+
+
+    ###########################################################################
+    #
+    def notify_complete(self, port):
+        print '[Processor:%s] Received completion notification from: %s' % (self.name, port)
+
+        self.input_ports[port]['complete'] = True
+        print '[Processor:%s] after setting port complete' % (self.name)
+
+        incomplete = 0
+        for ip in self.input_ports:
+            if self.input_ports[ip]['complete'] == False:
+                incomplete += 1
+
+        if incomplete:
+            print "[Processor:%s] %d incomplete ports remaining." % (self.name, incomplete)
+        else:
+            print "[Processor:%s] No incomplete ports remaining." % (self.name)
+            self.inputs_complete = True
+
+        if not self.running_tasks and self.inputs_complete:
+            print '[Processor:%s] Inputs complete and no running tasks, im done!' % (self.name)
+            self.stop()
+
+
+    ###########################################################################
+    #
+    def task_complete(self, task):
+        print '[Processor:%s] Received task completion notification from: %s' % (self.name, task)
+        self.running_tasks -= 1
+        print '[Processor:%s] Tasks still running: %d' % (self.name, self.running_tasks)
+
+        if not self.running_tasks and self.inputs_complete:
+            print '[Processor:%s] Inputs complete and no running tasks, im done!' % (self.name)
+            self.stop()
 
 
     ###########################################################################
@@ -309,7 +394,7 @@ class Processor(pykka.ThreadingActor):
     #
     def add_input_port(self, name, port_type, depth):
         print '[Processor:%s] Add input port %s(%s)[%d]' % (self.name, name, port_type, depth)
-        self.input_ports[name] = {'type': port_type, 'depth': depth}
+        self.input_ports[name] = {'type': port_type, 'depth': depth, 'complete': False}
         self.inputs[name] = {}
 
 
@@ -350,10 +435,10 @@ class Processor(pykka.ThreadingActor):
         name = '%s[%d]' % (self.name, self.task_index)
         self.task_index += 1
         input = {ip: self.inputs[ip][index] for ip in self.inputs}
-        ref = Task.start(name, self.gasw, input, self.output_ports, self.umgr)
+        ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, self.umgr)
         self.actor_refs.append(ref)
-        self.actor_proxies[name] = ref.proxy()
-
+        # self.actor_proxies[name] = ref.proxy()
+        self.running_tasks += 1
 
 
 ###############################################################################
@@ -361,9 +446,10 @@ class Processor(pykka.ThreadingActor):
 # Task Actor
 #
 class Task(pykka.ThreadingActor):
+
     ###########################################################################
     #
-    def __init__(self, name, gasw, input, output_ports, umgr):
+    def __init__(self, processor, name, gasw, input, output_ports, umgr):
         super(Task, self).__init__()
         self.name = name
         self.gasw = gasw
@@ -371,12 +457,15 @@ class Task(pykka.ThreadingActor):
         self.output_ports = output_ports
         self.umgr = umgr
         self.cu_id = None
+        self.complete = False
+        # self.cb_hist = {}
+        self.processor = processor
+
 
     ###########################################################################
     #
     def on_start(self):
         print '[Task:%s] Starting %s with %s ...' % (self.name, self.gasw, self.input)
-
         self.submit_cu()
 
 
@@ -433,16 +522,26 @@ class Task(pykka.ThreadingActor):
             elif depth == 1:
                 chunks = int(self.input['in_chunks'])
                 value = [42] * chunks
+            else:
+                raise Exception("Depth > 1 not supported")
 
             self.output_ports[op]['proxy'].add_input(self.name, depth, value).get()
 
-        self.stop()
+        self.complete = True
+        try:
+            print '[Task:%s] calling self.stop()' % (self.name)
+            self.stop()
+        except Exception as e:
+            print '[Task:%s] not alive?!?! %s' % (self.name, e)
 
 
     ###########################################################################
     #
     def on_stop(self):
-        print '[Task:%s] Done, quitting ... ' % (self.name)
+        print '[Task:%s] Quitting ... ' % (self.name)
+        print '[Task:%s] Notifying processor' % (self.name)
+        self.processor.task_complete(self.name)
+        print '[Task:%s] Done!' % (self.name)
 
 
 ###############################################################################
@@ -478,7 +577,6 @@ class ConcreteWF(object):
                 self.actor_refs.append(ref)
                 self.actor_proxies[n.name] = ref.proxy()
 
-
             if isinstance(n, abstractwf.Source):
                 print 'Creating actor for Source:', n.name
 
@@ -493,14 +591,12 @@ class ConcreteWF(object):
                 else:
                     raise Exception('Input not provided for port:' + n.name)
 
-
         for n in self.awf.list_proc_nodes():
             print 'Creating actor for Processor:', n.name
 
             ref = Processor.start(n.name, n.gasw, n.iter, umgr)
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
-
 
         for n in self.awf.list_output_nodes():
             print 'Creating actor for Sink:', n.name
@@ -509,7 +605,6 @@ class ConcreteWF(object):
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 
-
         for n in self.awf.list_port_nodes():
             print 'Creating actor for Port:', n.name
 
@@ -517,13 +612,11 @@ class ConcreteWF(object):
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 
-
         for e in self.awf.list_edges(self.awf.graph.nodes()):
             # print 'Creating edges between Actors ...'
             # print e[0].name, e[1].name
 
             self.actor_proxies[e[0].name].link_to(self.actor_proxies[e[1].name]).get()
-
 
         for n in self.awf.list_input_nodes():
             self.actor_proxies[n.name].fire().get()
@@ -538,16 +631,17 @@ class ConcreteWF(object):
         count = 0
 
         while True:
-            alive = 0
+            alive = []
             for ref in refs:
                 if ref.is_alive():
-                    alive += 1
+                    alive.append(ref)
 
             if not alive:
                 print "No actors alive"
                 break
             else:
-                print "Still %d actors alive" % alive
+                print "Still %d actors alive" % len(alive)
+                # print "Still %d actors alive (%s)" % (len(alive), [x.actor_class for x in alive])
 
             if timeout and count * sleep >= timeout:
                 print "Wait() timed out"
