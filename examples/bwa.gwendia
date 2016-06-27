@@ -4,7 +4,7 @@
         <source name="csFasta" type="string"/>
         <source name="qual" type="string"/>
         <source name="ReferenceTarGz" type="string"/>
-        <constant name="chunks" type="string" value="1" cardinality="scalar" />
+        <constant name="chunks" type="string" value="2" cardinality="scalar" />
         <sink name="Bai" type="string"/>
         <sink name="Bam" type="string"/>
     </interface>
