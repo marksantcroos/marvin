@@ -98,7 +98,9 @@ if __name__ == '__main__':
     cwf = marvin.ConcreteWF()
     cwf.init(awf, input, umgr)
 
-    time.sleep(120)
+    #time.sleep(120)
+
+    cwf.wait(timeout=10)
 
     cwf.deinit()
 

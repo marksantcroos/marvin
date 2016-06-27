@@ -522,6 +522,34 @@ class ConcreteWF(object):
 
     ###########################################################################
     #
+    def wait(self, timeout=None):
+        refs = pykka.ActorRegistry.get_all()
+
+        sleep = 1
+        count = 0
+
+        while True:
+            alive = 0
+            for ref in refs:
+                if ref.is_alive():
+                    alive += 1
+
+            if not alive:
+                print "No actors alive"
+                break
+            else:
+                print "Still %d actors alive" % alive
+
+            if timeout and count * sleep >= timeout:
+                print "Wait() timed out"
+                break
+
+            time.sleep(sleep)
+            count += 1
+
+
+    ###########################################################################
+    #
     def deinit(self):
         print 'Stopping all actors.'
         for ref in self.actor_refs:
