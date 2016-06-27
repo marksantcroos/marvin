@@ -1,6 +1,6 @@
 from xml.sax import handler, make_parser
 
-from abstractwf import Source, Sink, Port, Constant, Iteration, GASW, Processor, Link, AbstractWF
+from abstractwf import Source, Sink, Port, Constant, Iteration, Processor, Link, AbstractWF #, GASW
 
 class Elements(object):
 
@@ -41,7 +41,8 @@ class Elements(object):
         for p in self.processors:
             print '    Processor:', p.name
 
-            print '      GASW:', p.gasw.desc
+            # print '      GASW:', p.gasw.desc
+            print '      GASW:', p.gasw
             for i in p.input:
                 print '      Input:', i.name, i.type, i.depth
             for o in p.output:
@@ -180,16 +181,16 @@ class WorkflowHandler(handler.ContentHandler):
 
             self.p_out.name = attributes['name']
             self.p_out.type = attributes['type']
-            self.p_out.depth = attributes['depth']
+            self.p_out.depth = int(attributes['depth'])
 
         elif name == 'gasw':
             if self.inside_processor != True:
                 raise('gasw should not appear outside processor')
             self.inside_gasw = True
 
-            self.p_gasw = GASW()
-
-            self.p_gasw.desc= attributes['descriptor']
+            # self.p_gasw = GASW()
+            # self.p_gasw.desc = attributes['descriptor']
+            self.p_gasw = attributes['descriptor']
 
         elif name == 'iterationstrategy':
             if self.inside_processor != True:

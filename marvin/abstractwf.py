@@ -50,16 +50,16 @@ class Processor(Node):
         self.gasw = None
         self.iter = None
 
-class GASW(object):
-
-    __slots__ = ( 'desc' )
-
-    def __init__(self):
-        self.desc= None
+# class GASW(object):
+#
+#     __slots__ = ('desc')
+#
+#     def __init__(self):
+#         self.desc = None
 
 class Iteration(object):
 
-    __slots__ = ( 'type', 'strat', 'port', 'parent', 'child', 'next', 'depth')
+    __slots__ = ('type', 'strat', 'port', 'parent', 'child', 'next', 'depth')
 
     def __init__(self):
         self.type = None # PORT, ITERATION
