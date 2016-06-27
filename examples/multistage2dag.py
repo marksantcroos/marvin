@@ -184,7 +184,7 @@ if __name__ == '__main__':
 
     awf = ms2a(NUM_SYSTEMS, NUM_STAGES)
     #awf.nx_draw()
-    awf.pg_draw()
+    awf.pg_draw('ms_dag')
 
     print 'EOF'
 #
