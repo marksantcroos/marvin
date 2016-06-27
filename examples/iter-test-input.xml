@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><inputdata>
+    <source name="data" type="String">
+        <array>
+        <item>/grid/vlemed/ebioinfragate/matthan/inputs/predti/ppEricRuhe_WIP_46-DTI_b1600_SENSE_11_1.zip</item>
+        <item>/grid/vlemed/ebioinfragate/matthan/inputs/predti/ppEricRuhe_WIP_46-DTI_b1600_SENSE_11_2.zip</item>
+        </array>
+    </source>
+    <source name="output-directory" type="String">
+        <array>
+            <item>/grid/vlemed/vkorkhov/preDTI/output/shiwa-vlemed2</item>
+
+        </array>
+    </source>
+</inputdata>
