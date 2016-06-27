@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
     #time.sleep(120)
 
-    cwf.wait(timeout=10)
+    cwf.wait(timeout=120)
 
     cwf.deinit()
 
