@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name = 'marvin-wfms',
-    version = '0.0.1',
+    version = '0.1.0',
     author = 'Mark Santcroos',
     author_email = 'mark.santcroos@rutgers.edu',
     description = 'Pilot-based GWENDIA Workflow Enacter.',
