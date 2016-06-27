@@ -200,7 +200,7 @@ class AbstractWF(object):
 
         # Output graph to file
         #graph.write('awf.dot')
-        graph.draw('%s.pdf' % filename, prog='dot', format='pdf')
+        graph.draw('%s' % filename, prog='dot', format='pdf')
 
 
     #
