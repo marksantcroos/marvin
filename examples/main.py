@@ -1,10 +1,19 @@
 #!/usr/bin/env python2.6
 
-import time
-import marvin
+
+import os
+os.environ['RADICAL_SAGA_LOG_TGT'] = 'saga.log'
+os.environ['RADICAL_PILOT_LOG_TGT'] = 'rp.log'
+os.environ['RADICAL_PILOT_AGENT_VERBOSE'] = 'DEBUG'
 
 import radical.pilot as rp
+import radical.utils as ru
+report = ru.LogReporter(name='radical.pilot')
 
+import logging
+logging.basicConfig(filename='pykka.log', level=logging.DEBUG)
+
+import marvin
 
 #------------------------------------------------------------------------------
 #
