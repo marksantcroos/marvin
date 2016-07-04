@@ -59,11 +59,13 @@ class Source(pykka.ThreadingActor):
     #
     def fire(self):
         if not self.populated:
-            raise Exception("Tried to link, but not yet populated!")
+            raise Exception("%s Tried to link, but not yet populated!" % self._header)
 
-        for target in self.targets:
-            print '[Source:%s] Firing to %s\n' % (self.name, target.get_name().get())
-            target.add_input(self.name, 0, self.value).get()
+        # TODO: take depth of target port into account?
+        for idx, val in enumerate(self.value):
+            for target in self.targets:
+                report.info('%s Firing to %s\n' % (self._header, target.get_name().get()))
+                target.add_input(self.name, idx, [val]).get()
 
         self.stop()
 
@@ -193,14 +195,6 @@ class Sink(pykka.ThreadingActor):
 #
 class Port(pykka.ThreadingActor):
 
-    ###########################################################################
-    #
-    def _depth(self, l):
-        if isinstance(l, list):
-            return 1 + max(self._depth(item) for item in l)
-        else:
-            return 0
-
 
     ###########################################################################
     #
@@ -305,11 +299,22 @@ class Port(pykka.ThreadingActor):
 #
 class Processor(pykka.ThreadingActor):
 
+
+    ###########################################################################
+    #
+    def _depth(self, l):
+        if isinstance(l, list):
+            return 1 + max(self._depth(item) for item in l)
+        else:
+            return 0
+
+
     ###########################################################################
     #
     def __init__(self, name, gasw, iter, umgr):
         super(Processor, self).__init__()
         self.name = name
+        self._header = '[PROC  : %s]' % self.name
         self.gasw = gasw
         self.iter = iter
         self.targets = []
@@ -318,7 +323,7 @@ class Processor(pykka.ThreadingActor):
         self.actor_refs = []
         # self.actor_proxies = {}
 
-        self.task_index = 0
+        self.task_no = 0
         self.inputs_complete = False
 
         self.running_tasks = 0
@@ -423,33 +428,92 @@ class Processor(pykka.ThreadingActor):
     ###########################################################################
     #
     def add_input(self, port, index, value):
-        print '[Processor:%s] Received input[%d]: %s on port: %s' % (self.name, index, value, port)
-        self.inputs[port][index] = value
+        report.warn('%s Received input[%d]: %s on port: %s\n' % (self._header, index, value, port))
 
-        for ip in self.input_ports:
-            try:
-                if self.inputs[ip][index] == None:
-                    print "[Processor:%s] Has NULL value at index[%d]" % (self.name, index)
+        # Always starts at 1 level deep? Fix parser?
+        if self.iter:
+            iter = self.iter.child
+            report.warn("%s Iteration strategy: %s\n" % (self._header, iter.strat))
+
+        # TODO: Assuming depth of all input ports are the same for now
+        input_port_depth = self.input_ports[port]['depth']
+
+        # s2f / bwa / split
+        if input_port_depth == 0:
+
+            self.inputs[port][index] = value
+
+            for ip in self.input_ports:
+                report.error("The depth of port %s is: %d\n" % (ip, self.input_ports[ip]['depth']))
+                report.error("The depth of input on port %s is: %d\n" % (ip, len(self.inputs[ip])))
+                try:
+                    report.error("The depth of input on port %s[%d] is: %d\n" % (ip, index, self._depth(self.inputs[ip][index])))
+                except:
+                    report.warn("%s input port %s has no values at index %d\n" % (self._header, ip, index))
+
+            for ip in self.input_ports:
+                try:
+                    if self.inputs[ip][index] == None:
+                        report.warn("%s Has NULL value at index[%d]\n" % (self._header, index))
+                        return
+                except:
+                    report.warn("%s Not all input ports have a value at index[%d]\n" % (self._header, index))
                     return
-            except:
-                print "[Processor:%s] Not all input ports have a value at index[%d]" % (self.name, index)
-                return
 
-        print "[Processor:%s] All input ports have a value at index[%d]" % (self.name, index)
+            report.warn("%s All input ports have a value at index[%d]\n" % (self._header, index))
 
-        self.create_task(index)
+            for val in self.inputs[port][index]:
+                self.create_task(index, val)
+
+        # merge
+        elif input_port_depth == 1:
+
+            try:
+                self.inputs[port][index].append(value)
+            except KeyError:
+                self.inputs[port][index] = [value]
+
+            for ip in self.input_ports:
+                report.error("The depth of port %s is: %d\n" % (ip, self.input_ports[ip]['depth']))
+                report.error("The depth of input on port %s is: %d\n" % (ip, len(self.inputs[ip])))
+                try:
+                    report.error("The depth of input on port %s[%d] is: %d\n" % (ip, index, self._depth(self.inputs[ip][index])))
+                except:
+                    report.warn("%s input port %s has no values at index %d\n" % (self._header, ip, index))
+
+            length = 2
+
+            for ip in self.input_ports:
+                try:
+                    if self.inputs[ip][index] == None:
+                        report.warn("%s Has NULL value at index[%d]\n" % (self._header, index))
+                        return
+                except:
+                    report.warn("%s input port %s has no values at index %d\n" % (self._header, ip, index))
+                    return
+
+                report.warn("%s input port %s[%d] = %s\n" % (self._header, ip, index, self.inputs[ip][index]))
+                if len(self.inputs[ip][index]) < length:
+                    report.warn("%s %s[%d] does not have all input values (yet)\n" % (self._header, ip, index))
+                    return
+
+            report.warn("%s all input ports have all values at index %d\n" % (self._header, index))
+            val = self.inputs[port][index]
+            self.create_task(index, val)
 
 
     ###########################################################################
     #
-    def create_task(self, index):
-        name = '%s[%d]' % (self.name, self.task_index)
-        self.task_index += 1
-        input = {ip: self.inputs[ip][index] for ip in self.inputs}
-        ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, self.umgr)
+    def create_task(self, index, input):
+
+
+        name = '%s[%d]' % (self.name, self.task_no)
+        # input = {ip: self.inputs[ip][index] for ip in self.inputs}
+        ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, index, self.task_no, self.umgr)
         self.actor_refs.append(ref)
         # self.actor_proxies[name] = ref.proxy()
         self.running_tasks += 1
+        self.task_no += 1
 
 
 ###############################################################################
