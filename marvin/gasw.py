@@ -1,14 +1,14 @@
-def s2f(task_no):
-    return ['fastq%d' % task_no]
+def s2f(task_no, input):
+    return ['fastq%d_%s' % (task_no, input)]
 
-def split(task_no):
-    return [['fastq_slice_A'], ['fastq_slice_B']]
+def split(task_no, input):
+    return [['%s_slice_A' % input], ['%s_slice_B' % input]]
 
-def bwa(task_no):
-    return ['bam_%d' % task_no]
+def bwa(task_no, input):
+    return ['%s.bam' % input[0]]
 
-def merge(task_no):
-    return ['bam_merged_%d' % task_no]
+def merge(task_no, input):
+    return ['%s_merged.bam' % input[0][0][:6]]
 
 
 gasw_repo = {

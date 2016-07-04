@@ -591,7 +591,7 @@ class Task(pykka.ThreadingActor):
     def cu_done(self):
         gasw_desc = gasw_repo.get(self.gasw)
 
-        value = gasw_desc['function'](self.task_no)
+        value = gasw_desc['function'](self.task_no, self.input)
 
         for op in self.output_ports:
             if self.output_ports[op]['depth'] == 0:
