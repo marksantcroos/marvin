@@ -7,8 +7,6 @@ os.environ['RADICAL_PILOT_LOG_TGT'] = 'rp.log'
 os.environ['RADICAL_PILOT_AGENT_VERBOSE'] = 'DEBUG'
 
 import radical.pilot as rp
-import radical.utils as ru
-report = ru.LogReporter(name='radical.pilot')
 
 import logging
 logging.basicConfig(filename='pykka.log', level=logging.DEBUG)
@@ -114,6 +112,7 @@ if __name__ == '__main__':
     cwf.deinit()
 
     session.close(cleanup=False)
+
     print 'EOF'
 #
 ###############################################################################
