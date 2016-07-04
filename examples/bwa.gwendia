@@ -40,7 +40,7 @@
             <out name="out_bam" type="string" depth="0"/>
         </processor>
         <processor name="merge-bam">
-            <in name="in_bam" type="string" depth="0"/>
+            <in name="in_bam" type="string" depth="1"/>
             <out name="out_bam" type="string" depth="0"/>
             <out name="out_bai" type="string" depth="0"/>
             <gasw descriptor="merge.gasw"/>
