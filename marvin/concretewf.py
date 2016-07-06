@@ -205,7 +205,6 @@ class Port(pykka.ThreadingActor):
         self.port_type = port_type
         self.depth = depth
         self.targets = []
-        self.complete = False
         self._header = '[PORT  : %s]' % self.name
 
 
@@ -534,7 +533,6 @@ class Task(pykka.ThreadingActor):
         self.output_ports = output_ports
         self.umgr = umgr
         self.cu_id = None
-        self.complete = False
         # self.cb_hist = {}
         self.processor = processor
         self.index = index
@@ -595,18 +593,10 @@ class Task(pykka.ThreadingActor):
         value = gasw_desc['function'](self.task_no, self.input)
 
         for op in self.output_ports:
-            if self.output_ports[op]['depth'] == 0:
-                # idx = self.task_no
-                idx = self.index
-            elif self.output_ports[op]['depth'] == 1:
-                idx = self.index
-            else:
-                raise Exception("Don't deal with this depth yet: %d" % self.output_ports[op]['depth'])
-
+            idx = self.index
             report.warn('%s Sending %s to %s[%d]\n' % (self._header, value, op, idx))
             self.output_ports[op]['proxy'].add_input(self.name, idx, value).get()
 
-        self.complete = True
         try:
             report.info('%s calling self.stop()\n' % (self._header))
             self.stop()
