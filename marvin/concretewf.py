@@ -413,32 +413,33 @@ class Processor(pykka.ThreadingActor):
 
     ###########################################################################
     #
+    # This method is called from Task:on_stop()
+    #
     def task_complete(self, task, index):
+
         report.info('%s Received task completion notification from: %s\n' % (self._header, task))
         self.running_tasks[index] -= 1
-        report.warn('%s Tasks still running: %s; Inputs complete: %s\n' % (self._header, self.running_tasks, self.inputs_complete))
+        report.warn('%s Other tasks still running: %s; Inputs complete: %s\n' % (self._header, self.running_tasks, self.inputs_complete))
 
-        # TODO: only have to check for index?
-        rt = 0
-        for r in self.running_tasks:
-            rt += self.running_tasks[r]
+        if self.running_tasks[index] == 0:
+            report.warn('%s index: %d has no pending tasks\n' % (self._header, index))
 
-            if not self.running_tasks[r]:
-                report.warn('%s index: %d has no pending tasks\n' % (self._header, r))
-
-                if self.inputs_complete:
-                    report.warn('%s index:%d could notify completion!??!\n' % (self._header, r))
-                    for target in self.targets:
-                        report.info('%s Sending completion notification to %s for index: %d\n' % (self._header, target.get_name().get(), r))
-                        target.notify_complete(self.name, index=r).get()
-                else:
-                    report.warn('%s index:%d could not notify completion!??!\n' % (self._header, r))
-
+            if self.inputs_complete:
+                report.warn('%s index:%d could notify completion!??!\n' % (self._header, index))
+                for target in self.targets:
+                    report.info('%s Sending completion notification to %s for index: %d\n' % (self._header, target.get_name().get(), index))
+                    target.notify_complete(self.name, index=index).get()
             else:
-                report.warn('%s index: %d has pending tasks\n' % (self._header, r))
+                report.warn('%s index:%d could not notify completion!??!\n' % (self._header, index))
 
-        report.warn("%s rt: %d\n" % (self._header, rt))
-        if not rt and self.inputs_complete:
+        else:
+            report.warn('%s index: %d has pending tasks\n' % (self._header, index))
+
+        num_running = 0
+        for task_index in self.running_tasks:
+            num_running += self.running_tasks[task_index]
+        report.warn("%s rt: %d\n" % (self._header, num_running))
+        if num_running == 0 and self.inputs_complete:
             report.info('%s Inputs complete and no running tasks, im done!\n' % (self._header))
             self.stop()
 
