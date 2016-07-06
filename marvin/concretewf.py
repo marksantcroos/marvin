@@ -443,13 +443,13 @@ class Processor(pykka.ThreadingActor):
 
             self.inputs[port][index] = value
 
-            for ip in self.input_ports:
-                report.error("The depth of port %s is: %d\n" % (ip, self.input_ports[ip]['depth']))
-                report.error("The depth of input on port %s is: %d\n" % (ip, len(self.inputs[ip])))
-                try:
-                    report.error("The depth of input on port %s[%d] is: %d\n" % (ip, index, self._depth(self.inputs[ip][index])))
-                except:
-                    report.warn("%s input port %s has no values at index %d\n" % (self._header, ip, index))
+            # for ip in self.input_ports:
+            #     report.error("The depth of port %s is: %d\n" % (ip, self.input_ports[ip]['depth']))
+            #     report.error("The depth of input on port %s is: %d\n" % (ip, len(self.inputs[ip])))
+            #     try:
+            #         report.error("The depth of input on port %s[%d] is: %d\n" % (ip, index, self._depth(self.inputs[ip][index])))
+            #     except:
+            #         report.warn("%s input port %s has no values at index %d\n" % (self._header, ip, index))
 
             for ip in self.input_ports:
                 try:
@@ -473,13 +473,13 @@ class Processor(pykka.ThreadingActor):
             except KeyError:
                 self.inputs[port][index] = [value]
 
-            for ip in self.input_ports:
-                report.error("The depth of port %s is: %d\n" % (ip, self.input_ports[ip]['depth']))
-                report.error("The depth of input on port %s is: %d\n" % (ip, len(self.inputs[ip])))
-                try:
-                    report.error("The depth of input on port %s[%d] is: %d\n" % (ip, index, self._depth(self.inputs[ip][index])))
-                except:
-                    report.warn("%s input port %s has no values at index %d\n" % (self._header, ip, index))
+            # for ip in self.input_ports:
+            #     report.error("The depth of port %s is: %d\n" % (ip, self.input_ports[ip]['depth']))
+            #     report.error("The depth of input on port %s is: %d\n" % (ip, len(self.inputs[ip])))
+            #     try:
+            #         report.error("The depth of input on port %s[%d] is: %d\n" % (ip, index, self._depth(self.inputs[ip][index])))
+            #     except:
+            #         report.warn("%s input port %s has no values at index %d\n" % (self._header, ip, index))
 
             length = 2
 
