@@ -193,8 +193,9 @@ class Sink(pykka.ThreadingActor):
 #
 # Port Actor
 #
+# TODO: Should ports just be an attribute of a processor?
+#
 class Port(pykka.ThreadingActor):
-
 
     ###########################################################################
     #
