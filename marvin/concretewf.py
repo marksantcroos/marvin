@@ -183,9 +183,12 @@ class Sink(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def notify_complete(self, port):
-        report.info('%s Received completion notification from: %s\n' % (self._header, port))
-        self.complete = True
+    def notify_complete(self, port, index=-1):
+        if index >= 0:
+            report.info('%s Received completion notification from: %s for index: %d\n' % (self._header, port, index))
+            return
+
+        report.info('%s Received completion notification from: %s.\n' % (self._header, port))
         self.stop()
 
 
@@ -261,10 +264,15 @@ class Port(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def notify_complete(self, port):
-        report.info('%s Received completion notification from: %s\n' % (self._header, port))
-        self.complete = True
-        self.stop()
+    def notify_complete(self, port, index=-1):
+        if index == -1:
+            report.info('%s Received completion notification from: %s\n' % (self._header, port))
+            self.stop()
+        else:
+            report.info('%s Received completion notification from: %s for index: %d\n' % (self._header, port, index))
+            for target in self.targets:
+                report.info('%s Sending completion notification to %s:%d\n' % (self._header, target.get_name().get(), index))
+                target.notify_complete(self.name.split(':')[1], index).get()
 
 
     ###########################################################################
@@ -326,12 +334,14 @@ class Processor(pykka.ThreadingActor):
         self.task_no = 0
         self.inputs_complete = False
 
-        self.running_tasks = 0
+        self.running_tasks = {}
 
         self.input_ports = {}
         self.output_ports = {}
         self.inputs = {}
         # self.outputs = {}
+
+        self.indices_created = []
 
     ###########################################################################
     #
@@ -358,8 +368,25 @@ class Processor(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def notify_complete(self, port):
+    def notify_complete(self, port, index=-1):
+        if index >= 0:
+            report.info('%s Received completion notification from: %s for index: %d\n' % (self._header, port, index))
+            self.input_ports[port]['indices_complete'].append(index)
+
+            if self.input_ports[port]['depth'] == 1:
+                if index in self.indices_created:
+                    report.info('%s Task already created at index: %d!\n' % (self._header, index))
+                else:
+
+                    report.info('%s Index complete and we are depth==1, fire of tasks!\n' % (self._header))
+                    val = self.inputs[port][index]
+                    self.indices_created.append(index)
+                    self.create_task(index, val)
+
+            return
+
         report.info('%s Received completion notification from: %s\n' % (self._header, port))
+
 
         self.input_ports[port]['complete'] = True
         report.info('%s after setting port complete\n' % (self._header))
@@ -375,19 +402,43 @@ class Processor(pykka.ThreadingActor):
             report.info("%s No incomplete ports remaining.\n" % (self._header))
             self.inputs_complete = True
 
-        if not self.running_tasks and self.inputs_complete:
+        rt = 0
+        for r in self.running_tasks:
+            rt += self.running_tasks[r]
+        report.warn("%s rt: %d\n" % (self._header, rt))
+        if not rt and self.inputs_complete:
             report.info('%s Inputs complete and no running tasks, im done!\n' % (self._header))
             self.stop()
 
 
     ###########################################################################
     #
-    def task_complete(self, task):
+    def task_complete(self, task, index):
         report.info('%s Received task completion notification from: %s\n' % (self._header, task))
-        self.running_tasks -= 1
-        report.info('%s Tasks still running: %d\n' % (self._header, self.running_tasks))
+        self.running_tasks[index] -= 1
+        report.warn('%s Tasks still running: %s; Inputs complete: %s\n' % (self._header, self.running_tasks, self.inputs_complete))
 
-        if not self.running_tasks and self.inputs_complete:
+        # TODO: only have to check for index?
+        rt = 0
+        for r in self.running_tasks:
+            rt += self.running_tasks[r]
+
+            if not self.running_tasks[r]:
+                report.warn('%s index: %d has no pending tasks\n' % (self._header, r))
+
+                if self.inputs_complete:
+                    report.warn('%s index:%d could notify completion!??!\n' % (self._header, r))
+                    for target in self.targets:
+                        report.info('%s Sending completion notification to %s for index: %d\n' % (self._header, target.get_name().get(), r))
+                        target.notify_complete(self.name, index=r).get()
+                else:
+                    report.warn('%s index:%d could not notify completion!??!\n' % (self._header, r))
+
+            else:
+                report.warn('%s index: %d has pending tasks\n' % (self._header, r))
+
+        report.warn("%s rt: %d\n" % (self._header, rt))
+        if not rt and self.inputs_complete:
             report.info('%s Inputs complete and no running tasks, im done!\n' % (self._header))
             self.stop()
 
@@ -410,7 +461,7 @@ class Processor(pykka.ThreadingActor):
     #
     def add_input_port(self, name, port_type, depth):
         report.info('%s Add input port %s(%s)[%d]\n' % (self._header, name, port_type, depth))
-        self.input_ports[name] = {'type': port_type, 'depth': depth, 'complete': False}
+        self.input_ports[name] = {'type': port_type, 'depth': depth, 'complete': False, 'indices_complete': []}
         self.inputs[name] = {}
 
 
@@ -493,13 +544,16 @@ class Processor(pykka.ThreadingActor):
                     return
 
                 report.warn("%s input port %s[%d] = %s\n" % (self._header, ip, index, self.inputs[ip][index]))
-                if len(self.inputs[ip][index]) < length:
+                #if len(self.inputs[ip][index]) < length:
+                report.warn("%s input port %s[%d] indices_complete: %s\n" % (self._header, ip, index, self.input_ports[port]['indices_complete']))
+                if index not in self.input_ports[port]['indices_complete']:
                     report.warn("%s %s[%d] does not have all input values (yet)\n" % (self._header, ip, index))
                     return
 
             report.warn("%s all input ports have all values at index %d\n" % (self._header, index))
-            val = self.inputs[port][index]
-            self.create_task(index, val)
+            report.warn("%s skipping task creation\n" % (self._header))
+            # val = self.inputs[port][index]
+            # self.create_task(index, val)
 
 
     ###########################################################################
@@ -512,7 +566,10 @@ class Processor(pykka.ThreadingActor):
         ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, index, self.task_no, self.umgr)
         self.actor_refs.append(ref)
         # self.actor_proxies[name] = ref.proxy()
-        self.running_tasks += 1
+        if index in self.running_tasks:
+            self.running_tasks[index] += 1
+        else:
+            self.running_tasks[index] = 1
         self.task_no += 1
 
 
@@ -552,12 +609,9 @@ class Task(pykka.ThreadingActor):
         gasw_desc = gasw_repo.get(self.gasw)
 
         cud = rp.ComputeUnitDescription()
-        # cud.executable = "/bin/bash"
-        # cud.arguments = ["-c", "echo %s && sleep %s" % (self.name, 0)]
-        # cud.executable = gasw_desc['executable']
-        # cud.arguments = gasw_desc['arguments']
-        cud.executable = "/bin/sh"
-        cud.arguments = ["-c", "echo %s > STDOUT && %s %s" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']))]
+        cud.executable = "/bin/bash"
+        #cud.arguments = ["-c", "echo %s > STDOUT && %s %s" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']))]
+        cud.arguments = ["-c", "echo -n %s ... > STDOUT && %s %s && echo done >> STDOUT" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']) if (self.task_no != 0 or self.gasw != 's2f.gasw') else "60")]
         cu = self.umgr.submit_units(cud)
         self.cu_id = cu.uid
 
@@ -609,7 +663,7 @@ class Task(pykka.ThreadingActor):
     def on_stop(self):
         report.info('%s Quitting ...\n' % (self._header))
         report.info('%s Notifying processor\n' % (self._header))
-        self.processor.task_complete(self.name)
+        self.processor.task_complete(self.name, self.index)
         report.info('%s Done!\n' % (self._header))
 
 
