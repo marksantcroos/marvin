@@ -1,8 +1,12 @@
+import string
+
+
 def s2f(task_no, input):
     return ['fastq%d_%s' % (task_no, input)]
 
 def split(task_no, input):
-    return [['%s_slice_A' % input], ['%s_slice_B' % input]]
+    chunks = 2
+    return [['%s_slice_%s' % (input, letter)] for letter in string.ascii_uppercase[:chunks]]
 
 def bwa(task_no, input):
     return ['%s.bam' % input[0]]
