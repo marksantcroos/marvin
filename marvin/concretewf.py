@@ -57,6 +57,8 @@ class Source(pykka.ThreadingActor):
 
     ###########################################################################
     #
+    # Called by the API once all elements are created and inputs are provided.
+    #
     def fire(self):
         if not self.populated:
             raise Exception("%s Tried to link, but not yet populated!" % self._header)
@@ -71,6 +73,8 @@ class Source(pykka.ThreadingActor):
 
 
     ###########################################################################
+    #
+    # This add input values to, which is added through the API when parsing input files
     #
     def populate(self, value):
         report.warn('%s Populating with value: %s\n' % (self._header, value))
@@ -131,6 +135,8 @@ class Constant(pykka.ThreadingActor):
 
     ###########################################################################
     #
+    # Called by the API once all elements are created and inputs are provided.
+    #
     def fire(self):
         for target in self.targets:
             report.info('%s Firing to %s\n' % (self._header, target.get_name().get()))
@@ -170,6 +176,8 @@ class Sink(pykka.ThreadingActor):
 
     ###########################################################################
     #
+    # Sink gets values submitted by its input port when ...
+    #
     def add_input(self, port, index, value):
         report.warn('%s Received input: %s on port: %s\n' % (self._header, value, port))
         self.inputs.append((port, value))
@@ -183,9 +191,13 @@ class Sink(pykka.ThreadingActor):
 
     ###########################################################################
     #
+    # Sink gets notified by its input port when ...
+    #
     def notify_complete(self, port, index=-1):
         if index >= 0:
             report.info('%s Received completion notification from: %s for index: %d\n' % (self._header, port, index))
+
+            # If this is a completion for an index only, then don't stop yet
             return
 
         report.info('%s Received completion notification from: %s.\n' % (self._header, port))
@@ -264,6 +276,8 @@ class Port(pykka.ThreadingActor):
 
     ###########################################################################
     #
+    # Notified when output port of input component is done.
+    #
     def notify_complete(self, port, index=-1):
         if index == -1:
             report.info('%s Received completion notification from: %s\n' % (self._header, port))
@@ -339,7 +353,6 @@ class Processor(pykka.ThreadingActor):
         self.input_ports = {}
         self.output_ports = {}
         self.inputs = {}
-        # self.outputs = {}
 
         self.indices_created = []
 
@@ -368,8 +381,12 @@ class Processor(pykka.ThreadingActor):
 
     ###########################################################################
     #
+    # Called by input port when XXX, index is set when XXX
+    #
     def notify_complete(self, port, index=-1):
         if index >= 0:
+            report.error('%s XXX' % self._header)
+
             report.info('%s Received completion notification from: %s for index: %d\n' % (self._header, port, index))
             self.input_ports[port]['indices_complete'].append(index)
 
@@ -377,7 +394,6 @@ class Processor(pykka.ThreadingActor):
                 if index in self.indices_created:
                     report.info('%s Task already created at index: %d!\n' % (self._header, index))
                 else:
-
                     report.info('%s Index complete and we are depth==1, fire of tasks!\n' % (self._header))
                     val = self.inputs[port][index]
                     self.indices_created.append(index)
@@ -405,7 +421,7 @@ class Processor(pykka.ThreadingActor):
         rt = 0
         for r in self.running_tasks:
             rt += self.running_tasks[r]
-        report.warn("%s rt: %d\n" % (self._header, rt))
+        report.warn("%s Running tasks: %d\n" % (self._header, rt))
         if not rt and self.inputs_complete:
             report.info('%s Inputs complete and no running tasks, im done!\n' % (self._header))
             self.stop()
@@ -552,9 +568,6 @@ class Processor(pykka.ThreadingActor):
                     return
 
             report.warn("%s all input ports have all values at index %d\n" % (self._header, index))
-            report.warn("%s skipping task creation\n" % (self._header))
-            # val = self.inputs[port][index]
-            # self.create_task(index, val)
 
 
     ###########################################################################
