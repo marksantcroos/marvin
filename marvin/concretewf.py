@@ -440,7 +440,14 @@ class Processor(pykka.ThreadingActor):
         if self.running_tasks[index] == 0:
             report.warn('%s index: %d has no pending tasks\n' % (self._header, index))
 
-            if self.inputs_complete:
+            all_indices_complete = True
+            for port in self.input_ports:
+                report.warn("%s port: %s:%d -- %s\n" % (self._header, port, index, self.input_ports[port]['indices_complete']))
+                if index not in self.input_ports[port]['indices_complete']:
+                    all_indices_complete = False
+                    break
+
+            if all_indices_complete or self.inputs_complete:
                 report.warn('%s index:%d could notify completion!??!\n' % (self._header, index))
                 for target in self.targets:
                     report.info('%s Sending completion notification to %s for index: %d\n' % (self._header, target.get_name().get(), index))
