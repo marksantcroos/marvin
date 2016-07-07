@@ -385,7 +385,6 @@ class Processor(pykka.ThreadingActor):
     #
     def notify_complete(self, port, index=-1):
         if index >= 0:
-            report.error('%s XXX' % self._header)
 
             report.info('%s Received completion notification from: %s for index: %d\n' % (self._header, port, index))
             self.input_ports[port]['indices_complete'].append(index)
@@ -461,7 +460,7 @@ class Processor(pykka.ThreadingActor):
         num_running = 0
         for task_index in self.running_tasks:
             num_running += self.running_tasks[task_index]
-        report.warn("%s rt: %d\n" % (self._header, num_running))
+        report.warn("%s Running tasks: %d\n" % (self._header, num_running))
         if num_running == 0 and self.inputs_complete:
             report.info('%s Inputs complete and no running tasks, im done!\n' % (self._header))
             self.stop()
