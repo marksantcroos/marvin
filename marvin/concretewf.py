@@ -333,7 +333,7 @@ class Processor(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def __init__(self, name, gasw, iter, umgr):
+    def __init__(self, name, gasw, iter, umgr, data_pilots):
         super(Processor, self).__init__()
         self.name = name
         self._header = '[PROC  : %s]' % self.name
@@ -341,6 +341,7 @@ class Processor(pykka.ThreadingActor):
         self.iter = iter
         self.targets = []
         self.umgr = umgr
+        self.data_pilots = data_pilots
 
         self.actor_refs = []
         # self.actor_proxies = {}
@@ -583,7 +584,7 @@ class Processor(pykka.ThreadingActor):
 
         name = '%s[%d]' % (self.name, self.task_no)
         # input = {ip: self.inputs[ip][index] for ip in self.inputs}
-        ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, index, self.task_no, self.umgr)
+        ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, index, self.task_no, self.umgr, self.data_pilots)
         self.actor_refs.append(ref)
         # self.actor_proxies[name] = ref.proxy()
         if index in self.running_tasks:
@@ -601,7 +602,7 @@ class Task(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def __init__(self, processor, name, gasw, input, output_ports, index, task_no, umgr):
+    def __init__(self, processor, name, gasw, input, output_ports, index, task_no, umgr, data_pilots):
         super(Task, self).__init__()
         self.name = name
         self._header = '[TASK  : %s]' % self.name
@@ -609,6 +610,7 @@ class Task(pykka.ThreadingActor):
         self.input = input
         self.output_ports = output_ports
         self.umgr = umgr
+        self.data_pilots = data_pilots
         self.cu_id = None
         # self.cb_hist = {}
         self.processor = processor
@@ -628,10 +630,26 @@ class Task(pykka.ThreadingActor):
     def submit_cu(self):
         gasw_desc = gasw_repo.get(self.gasw)
 
+        size = 1
+        dud = rp.DataUnitDescription()
+        # dud.name = "%dM" % size
+        dud.name = "%dM" % size
+        # dud.file_urls = ["data/%dM" % size]
+        # dud.file_urls = ["data/solid.txt"]
+        dud.file_urls = ["data/%s" % gasw_desc['input']]
+        dud.size = size
+        dud.selection = rp.SELECTION_FAST
+
+        du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=True)
+        print "data unit: %s available on data pilots: %s" % (du.uid, du.pilot_ids)
+
         cud = rp.ComputeUnitDescription()
-        cud.executable = "/bin/bash"
-        #cud.arguments = ["-c", "echo %s > STDOUT && %s %s" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']))]
-        cud.arguments = ["-c", "echo -n %s ... > STDOUT && %s %s && echo done >> STDOUT" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']) if (self.task_no != 0 or self.gasw != 's2f.gasw') else "60")]
+        # cud.executable = "/bin/bash"
+        # cud.arguments = ["-c", "echo -n %s ... > STDOUT && %s %s && echo done >> STDOUT" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']))]
+        #cud.arguments = ["-c", "echo -n %s ... > STDOUT && %s %s && echo done >> STDOUT" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']) if (self.task_no != 0 or self.gasw != 's2f.gasw') else "60")]
+        cud.executable = gasw_desc['executable']
+        cud.arguments = gasw_desc['arguments']
+        cud.input_data = [du.uid]
         cu = self.umgr.submit_units(cud)
         self.cu_id = cu.uid
 
@@ -701,11 +719,12 @@ class ConcreteWF(object):
     # Create an abstract graph out of the internal workflow format
     # that was read from file
     #
-    def init(self, awf, inputdata, umgr):
+    def init(self, awf, inputdata, umgr, data_pilots):
         report.info('Creating concrete workflow\n')
 
         self.awf = awf
         self.umgr = umgr
+        self.data_pilots = data_pilots
 
         self.actor_proxies = {}
         self.actor_refs = []
@@ -737,7 +756,7 @@ class ConcreteWF(object):
         for n in self.awf.list_proc_nodes():
             report.info('Creating actor for Processor: %s\n' % n.name)
 
-            ref = Processor.start(n.name, n.gasw, n.iter, umgr)
+            ref = Processor.start(n.name, n.gasw, n.iter, umgr, data_pilots)
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 

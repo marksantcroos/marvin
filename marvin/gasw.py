@@ -19,29 +19,46 @@ gasw_repo = {
 
     "s2f.gasw": {
         #"executable": "solid-to-fastqPE"
-        "executable": "sleep",
-        "arguments": ['1'],
+        # "executable": "sleep",
+        # "arguments": ['1'],
+        # tr "[:upper:]" "[:lower:]" < solid.txt > fastq.txt
+        "executable": "tr",
+        "arguments": ['[:upper:]', '[:lower:]', '<', 'solid.txt', '>', 'fastq.txt'],
+        "input": 'solid.txt',
         "function": s2f
     },
 
     "split.gasw": {
         # "executable": "split-fastq"
-        "executable": "sleep",
-        "arguments": ['1'],
+        # "executable": "sleep",
+        # "arguments": ['1'],
+        # split -l4 fastq.txt fastq.
+        #  awk 'NR%4==1 { file = "fastq_" sprintf("%04d", NR/4) } { print > file }' fastq.txt
+        "executable": "awk",
+        "arguments": ['NR%13==1 { file = "fastq_" sprintf("%04d", NR/13) } { print > file }', 'fastq.txt'],
+        "input": 'fastq.txt',
         "function": split
     },
 
     "bwa.gasw": {
         # "executable": "bwa-short-paired-read",
-        "executable": "sleep",
-        "arguments": ['1'],
+        # "executable": "sleep",
+        # "arguments": ['1'],
+        # gshuf fast_0000 > fast_0000.bam
+        "executable": "gshuf",
+        "arguments": ['fastq_0000', '>', 'fastq_0000.bam'],
+        "input": 'fastq_0000',
         "function": bwa
     },
 
     "merge.gasw": {
         # "executable": "merge-bam"
-        "executable": "sleep",
-        "arguments": ['1'],
+        # "executable": "sleep",
+        # "arguments": ['1'],
+        # sort -r *.bam > result.bam
+        "executable": "sort",
+        "arguments": ['-r', '*.bam', '>', 'result.bam'],
+        "input": 'fastq_0000.bam',
         "function": merge
     }
 }

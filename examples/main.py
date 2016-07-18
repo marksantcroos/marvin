@@ -2,6 +2,7 @@
 
 
 import os
+import sys
 os.environ['RADICAL_SAGA_LOG_TGT'] = 'saga.log'
 os.environ['RADICAL_PILOT_LOG_TGT'] = 'rp.log'
 os.environ['RADICAL_PILOT_AGENT_VERBOSE'] = 'DEBUG'
@@ -12,6 +13,11 @@ import logging
 logging.basicConfig(filename='pykka.log', level=logging.DEBUG)
 
 import marvin
+
+LOCAL = "LOCAL"
+OSG = "OSG"
+
+CORES = 1
 
 #------------------------------------------------------------------------------
 #
@@ -40,8 +46,17 @@ def unit_state_cb (unit, state):
 #
 if __name__ == '__main__':
 
+    # we can optionally pass session name to RP
+    if len(sys.argv) > 1:
+        target = sys.argv[1]
+    else:
+        target = LOCAL
+
+    print 'running on %s' % target
+
     session = rp.Session()
     print "session id: %s" % session.uid
+
 
     pmgr = rp.PilotManager(session=session)
     # pmgr.register_callback(pilot_state_cb)
@@ -53,34 +68,71 @@ if __name__ == '__main__':
     # umgr.register_callback(unit_state_cb,      rp.UNIT_STATE)
     # umgr.register_callback(wait_queue_size_cb, rp.WAIT_QUEUE_SIZE)
 
-    pdesc = rp.ComputePilotDescription()
-    pdesc.resource        = "local.localhost"
-    pdesc.cores           = 1
-    # pdesc.resource        = "osg.xsede-virt-clust"
-    # pdesc.project         = 'TG-CCR140028'
-    pdesc.runtime         = 60
-    pdesc.cleanup         = False
-    # pdesc.candidate_hosts = [
-    #     #'MIT_CMS',
-    #     #'UConn-OSG',
-    #     '!SU-OG', # No compiler
-    #     '!SU-OG-CE', #
-    #     '!SU-OG-CE1', #
-    #     '!CIT_CMS_T2', # Takes too long to bootstrap
-    #     '!FIU_HPCOSG_CE', # zeromq build fails
-    #     #'BU_ATLAS_Tier2',
-    #     #'!UCSDT2', # Failing because of format character ...
-    #     # '!MWT2', # No ssh
-    #     '!SPRACE', # failing
-    #     '!GridUNESP_CENTRAL', # On hold immediately.
-    #     #'~(HAS_CVMFS_oasis_opensciencegrid_org =?= TRUE)'
-    # ]
+    cpdesc = rp.ComputePilotDescription()
+    cpdesc.cleanup = False
+    cpdesc.runtime = 60
 
-    pilot = pmgr.submit_pilots(pdesc)
-    umgr.add_pilots(pilot)
+    if target == LOCAL:
+        num_pilots = 1
 
-    # report.info("Waiting for pilots to become active ...\n")
-    pmgr.wait_pilots(pilot.uid , state=[rp.ACTIVE, rp.FAILED, rp.CANCELED])
+        cpdesc.resource = "local.localhost"
+        cpdesc.cores = CORES
+
+    elif target == OSG:
+        num_pilots = CORES
+
+        cpdesc.cores = 1
+        cpdesc.resource = "osg.xsede-virt-clust"
+        cpdesc.project = 'TG-CCR140028'
+        cpdesc.candidate_hosts = [
+            #'MIT_CMS',
+            #'UConn-OSG',
+            '!SU-OG', # No compiler
+            '!SU-OG-CE', #
+            '!SU-OG-CE1', #
+            '!CIT_CMS_T2', # Takes too long to bootstrap
+            '!FIU_HPCOSG_CE', # zeromq build fails
+            #'BU_ATLAS_Tier2',
+            '!UCSDT2', # No cc
+            # '!MWT2', # No ssh
+            '!SPRACE', # failing
+            '!GridUNESP_CENTRAL', # On hold immediately.
+            #'~(HAS_CVMFS_oasis_opensciencegrid_org =?= TRUE)'
+        ]
+    else:
+        raise Exception("Unknown target: %s" % target)
+
+    # TODO: bulk submit pilots here
+    pilots = []
+    for p in range(num_pilots):
+        pilot = pmgr.submit_pilots(cpdesc)
+        umgr.add_pilots(pilot)
+        pilots.append(pilot)
+
+    dpds = []
+    #for SE in [
+    for SE in [
+        #'MIT_CMS',
+        #'LUCILLE',
+        # Preferred SEs
+        # 'cinvestav',
+        # "osg.GLOW",
+        # "SPRACE",
+        # "SWT2_CPB", # DEAD
+        # "osg.Nebraska",
+        # "osg.UCSDT2",
+        # "osg.UTA_SWT2"
+        "local.pd_tmp"
+    ]:
+        dpdesc = rp.DataPilotDescription()
+        dpdesc.resource = '%s' % SE
+        dpds.append(dpdesc)
+
+    data_pilots = pmgr.submit_data_pilots(dpds)
+
+    # if target == LOCAL:
+    print("Waiting for pilots to become active ...\n")
+    pmgr.wait_pilots([pilot.uid for pilot in pilots], state=[rp.ACTIVE, rp.FAILED, rp.CANCELED])
 
     #gwendia_xml_file = '../examples/example.gwendia'
     #input_file = '../examples/gwendia_input_sample.xml'
@@ -103,11 +155,11 @@ if __name__ == '__main__':
     awf.pg_draw('main.pdf')
 
     cwf = marvin.ConcreteWF()
-    cwf.init(awf, input, umgr)
+    cwf.init(awf, input, umgr, data_pilots)
 
     #time.sleep(120)
 
-    cwf.wait(timeout=120)
+    cwf.wait(timeout=500)
 
     cwf.deinit()
 
@@ -116,5 +168,3 @@ if __name__ == '__main__':
     print 'EOF'
 #
 ###############################################################################
-
-
