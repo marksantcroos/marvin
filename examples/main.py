@@ -121,8 +121,9 @@ if __name__ == '__main__':
         # "SWT2_CPB", # DEAD
         # "osg.Nebraska",
         # "osg.UCSDT2",
-        # "osg.UTA_SWT2"
-        "local.pd_tmp"
+        # "osg.UTA_SWT2",
+        # "local.pd_tmp",
+        "local.pd_home"
     ]:
         dpdesc = rp.DataPilotDescription()
         dpdesc.resource = '%s' % SE
