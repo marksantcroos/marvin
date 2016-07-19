@@ -3,6 +3,8 @@
 import pykka
 import time
 
+from string import Template
+
 import radical.utils as ru
 report = ru.LogReporter(name='radical.pilot')
 
@@ -22,12 +24,14 @@ class Source(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def __init__(self, name):
+    def __init__(self, name, umgr, data_pilots):
         super(Source, self).__init__()
         self.name = name
         self.targets = []
         self.populated = False
         self._header = '[SOURCE: %s]' % self.name
+        self.umgr = umgr
+        self.data_pilots = data_pilots
 
 
     ###########################################################################
@@ -64,7 +68,7 @@ class Source(pykka.ThreadingActor):
             raise Exception("%s Tried to link, but not yet populated!" % self._header)
 
         # TODO: take depth of target port into account?
-        for idx, val in enumerate(self.value):
+        for idx, val in enumerate(self.data_units):
             for target in self.targets:
                 report.info('%s Firing to %s\n' % (self._header, target.get_name().get()))
                 target.add_input(self.name, idx, [val]).get()
@@ -78,8 +82,22 @@ class Source(pykka.ThreadingActor):
     #
     def populate(self, value):
         report.warn('%s Populating with value: %s\n' % (self._header, value))
-        self.value = value
+        # self.value = value
         self.populated = True
+
+        self.data_units = []
+        for val in value:
+
+            dud = rp.DataUnitDescription()
+            dud.name = val
+            dud.file_urls = ["%s" % val]
+            dud.size = 1
+            dud.selection = rp.SELECTION_FAST
+
+            du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=True)
+            print "data unit %s with %s available on data pilots: %s" % (du.uid, val, du.pilot_ids)
+
+            self.data_units.append(du)
 
 
 ###############################################################################
@@ -630,30 +648,41 @@ class Task(pykka.ThreadingActor):
     def submit_cu(self):
         gasw_desc = gasw_repo.get(self.gasw)
 
-        size = 1
         dud = rp.DataUnitDescription()
         # dud.name = "%dM" % size
-        dud.name = "%dM" % size
-        # dud.file_urls = ["data/%dM" % size]
-        # dud.file_urls = ["data/solid.txt"]
-        dud.file_urls = ["data/%s" % gasw_desc['input']]
-        dud.size = size
+        dud.name = gasw_desc['output']
+        dud.file_urls = ["%s" % gasw_desc['output']]
+        dud.size = 1
         dud.selection = rp.SELECTION_FAST
 
-        du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=True)
-        print "data unit: %s available on data pilots: %s" % (du.uid, du.pilot_ids)
+        du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=False)
+        print "data unit: %s will be available on data pilots: %s" % (du.uid, du.pilot_ids)
+        self.output = du
 
         cud = rp.ComputeUnitDescription()
         # cud.executable = "/bin/bash"
         # cud.arguments = ["-c", "echo -n %s ... > STDOUT && %s %s && echo done >> STDOUT" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']))]
         #cud.arguments = ["-c", "echo -n %s ... > STDOUT && %s %s && echo done >> STDOUT" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']) if (self.task_no != 0 or self.gasw != 's2f.gasw') else "60")]
         cud.executable = gasw_desc['executable']
-        cud.arguments = gasw_desc['arguments']
-        cud.input_data = [du.uid]
+        cud.arguments = []
+        for arg in gasw_desc['arguments']:
+            if not isinstance(self.input, list):
+                t = Template(arg)
+                cud.arguments.append(t.substitute({'TARGET': self.input.name}))
+            else:
+                cud.arguments.append(arg)
+
+        print 'self.input: %s' % self.input
+        if not isinstance(self.input, list):
+            cud.input_data = [self.input.uid]
+        else:
+            cud.input_data = [d.uid for l in self.input for d in l]
+        cud.output_data = [du.uid]
+
         cu = self.umgr.submit_units(cud)
         self.cu_id = cu.uid
 
-        report.info('%s Launching %s (%s) %s...\n' % (self._header, gasw_desc['executable'], self.cu_id, self.input))
+        report.info('%s Launching %s %s (%s) %s...\n' % (self._header, gasw_desc['executable'], gasw_desc['arguments'], self.cu_id, cud.input_data))
 
         # self.cb_hist[self.cu_id] = []
         cu.register_callback(self.cu_cb)
@@ -682,7 +711,8 @@ class Task(pykka.ThreadingActor):
     def cu_done(self):
         gasw_desc = gasw_repo.get(self.gasw)
 
-        value = gasw_desc['function'](self.task_no, self.input)
+        # value = gasw_desc['function'](self.task_no, self.input)
+        value = [self.output]
 
         for op in self.output_ports:
             idx = self.index
@@ -723,8 +753,8 @@ class ConcreteWF(object):
         report.info('Creating concrete workflow\n')
 
         self.awf = awf
-        self.umgr = umgr
-        self.data_pilots = data_pilots
+        # self.umgr = umgr
+        # self.data_pilots = data_pilots
 
         self.actor_proxies = {}
         self.actor_refs = []
@@ -742,7 +772,7 @@ class ConcreteWF(object):
             if isinstance(n, abstractwf.Source):
                 report.info('Creating actor for Source: %s\n' % n.name)
 
-                ref = Source.start(n.name)
+                ref = Source.start(n.name, umgr, data_pilots)
                 self.actor_refs.append(ref)
                 proxy = ref.proxy()
 

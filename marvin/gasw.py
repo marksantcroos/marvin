@@ -23,8 +23,10 @@ gasw_repo = {
         # "arguments": ['1'],
         # tr "[:upper:]" "[:lower:]" < solid.txt > fastq.txt
         "executable": "tr",
-        "arguments": ['[:upper:]', '[:lower:]', '<', 'solid.txt', '>', 'fastq.txt'],
-        "input": 'solid.txt',
+        # "arguments": ['[:upper:]', '[:lower:]', '<', 'solid.txt', '>', 'fastq.txt'],
+        "arguments": ['[:upper:]', '[:lower:]', '<', '${TARGET}', '>', 'fastq.txt'],
+        # "input": 'solid.txt',
+        "output": 'fastq.txt',
         "function": s2f
     },
 
@@ -37,6 +39,7 @@ gasw_repo = {
         "executable": "awk",
         "arguments": ['NR%13==1 { file = "fastq_" sprintf("%04d", NR/13) } { print > file }', 'fastq.txt'],
         "input": 'fastq.txt',
+        "output": 'fastq_0000',
         "function": split
     },
 
@@ -48,6 +51,7 @@ gasw_repo = {
         "executable": "gshuf",
         "arguments": ['fastq_0000', '>', 'fastq_0000.bam'],
         "input": 'fastq_0000',
+        "output": 'fastq_0000.bam',
         "function": bwa
     },
 
@@ -59,6 +63,7 @@ gasw_repo = {
         "executable": "sort",
         "arguments": ['-r', '*.bam', '>', 'result.bam'],
         "input": 'fastq_0000.bam',
+        "output": 'result.bam',
         "function": merge
     }
 }
