@@ -10,13 +10,13 @@
         </array>
     </source>
 
-    <source name="qual" type="String">
-        <array>
-            <item>qual1</item>
-            <item>qual2</item>
-            <item>qual3</item>
-        </array>
-    </source>
+    <!--<source name="qual" type="String">-->
+        <!--<array>-->
+            <!--<item>qual1</item>-->
+            <!--<item>qual2</item>-->
+            <!--<item>qual3</item>-->
+        <!--</array>-->
+    <!--</source>-->
 
     <!--<source name="ReferenceTarGz" type="string">-->
     <!--<array>-->
