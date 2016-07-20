@@ -647,12 +647,28 @@ class Task(pykka.ThreadingActor):
     ###########################################################################
     #
     def submit_cu(self):
+
         gasw_desc = gasw_repo.get(self.gasw)
+
+        if not isinstance(self.input, list):
+            input = self.input.description.file_urls[0]
+        elif len(self.input) == 1:
+            input = self.input[0][0].description.file_urls[0]
+        else:
+            input = None
+
+        output = []
+        for e in gasw_desc['output']:
+            if input:
+                t = Template(e)
+                e = t.safe_substitute({'INPUT': input})
+
+            output.append(e)
 
         # TODO: Create DU per port?
         dud = rp.DataUnitDescription()
-        dud.name = 'output'
-        dud.file_urls = gasw_desc['output']
+        dud.name = output
+        dud.file_urls = output
         dud.size = 1
         dud.selection = rp.SELECTION_FAST
 
@@ -668,20 +684,13 @@ class Task(pykka.ThreadingActor):
         cud.arguments = []
         cud.pre_exec = ['touch %s' % self.gasw]
         for arg in gasw_desc['arguments']:
-            if not isinstance(self.input, list):
+            if input:
                 t = Template(arg)
-                arg = t.safe_substitute({
-                    'INPUT': self.input.description.file_urls[0]
-                })
-
-            elif len(self.input) == 1:
-                t = Template(arg)
-                arg = t.safe_substitute({
-                    'INPUT': self.input[0].description.file_urls[0]
-                })
+                arg = t.safe_substitute({'INPUT': input})
 
             cud.arguments.append(arg)
 
+        # TODO: I dont understand completely why we end up with different nesting
         if not isinstance(self.input, list):
             cud.input_data = [self.input.uid]
         else:
