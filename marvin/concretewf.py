@@ -13,6 +13,8 @@ import radical.pilot as rp
 import abstractwf
 from gasw import gasw_repo
 
+import pprint
+
 ###############################################################################
 #
 # Source Actor
@@ -630,7 +632,6 @@ class Task(pykka.ThreadingActor):
         self.umgr = umgr
         self.data_pilots = data_pilots
         self.cu_id = None
-        # self.cb_hist = {}
         self.processor = processor
         self.index = index
         self.task_no = task_no
@@ -648,44 +649,59 @@ class Task(pykka.ThreadingActor):
     def submit_cu(self):
         gasw_desc = gasw_repo.get(self.gasw)
 
+        # TODO: Create DU per port?
         dud = rp.DataUnitDescription()
-        # dud.name = "%dM" % size
-        dud.name = gasw_desc['output']
-        dud.file_urls = ["%s" % gasw_desc['output']]
+        dud.name = 'output'
+        dud.file_urls = gasw_desc['output']
         dud.size = 1
         dud.selection = rp.SELECTION_FAST
 
         du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=False)
         print "data unit: %s will be available on data pilots: %s" % (du.uid, du.pilot_ids)
-        self.output = du
 
+        # Record the DU as the output for this task
+        self.output = [du]
+
+        # Construct CU
         cud = rp.ComputeUnitDescription()
-        # cud.executable = "/bin/bash"
-        # cud.arguments = ["-c", "echo -n %s ... > STDOUT && %s %s && echo done >> STDOUT" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']))]
-        #cud.arguments = ["-c", "echo -n %s ... > STDOUT && %s %s && echo done >> STDOUT" % (self.name, gasw_desc['executable'], " ".join(gasw_desc['arguments']) if (self.task_no != 0 or self.gasw != 's2f.gasw') else "60")]
         cud.executable = gasw_desc['executable']
         cud.arguments = []
+        cud.pre_exec = ['touch %s' % self.gasw]
         for arg in gasw_desc['arguments']:
             if not isinstance(self.input, list):
                 t = Template(arg)
-                cud.arguments.append(t.substitute({'TARGET': self.input.name}))
-            else:
-                cud.arguments.append(arg)
+                arg = t.safe_substitute({
+                    'INPUT': self.input.description.file_urls[0]
+                })
 
-        print 'self.input: %s' % self.input
+            elif len(self.input) == 1:
+                t = Template(arg)
+                arg = t.safe_substitute({
+                    'INPUT': self.input[0].description.file_urls[0]
+                })
+
+            cud.arguments.append(arg)
+
         if not isinstance(self.input, list):
             cud.input_data = [self.input.uid]
         else:
-            cud.input_data = [d.uid for l in self.input for d in l]
+            if not isinstance(self.input[0], list):
+                cud.input_data = [d.uid for d in self.input]
+            else:
+                cud.input_data = [d.uid for l in self.input for d in l]
+
         cud.output_data = [du.uid]
 
+        # Submit the unit
         cu = self.umgr.submit_units(cud)
+
+        # Couple the CU ID to this task
         self.cu_id = cu.uid
 
-        report.info('%s Launching %s %s (%s) %s...\n' % (self._header, gasw_desc['executable'], gasw_desc['arguments'], self.cu_id, cud.input_data))
-
-        # self.cb_hist[self.cu_id] = []
+        # Register CU for callbacks
         cu.register_callback(self.cu_cb)
+
+        report.info('%s Launching %s (args:%s) (id:%s) (input:%s)...\n' % (self._header, cud.executable, cud.arguments, self.cu_id, cud.input_data))
 
 
     ###########################################################################
@@ -693,17 +709,16 @@ class Task(pykka.ThreadingActor):
     def cu_cb(self, unit, state):
         # report.info("[Callback]: %s unit[%s]:'%s' on %s: %s.\n" % (self.actor_urn, unit.uid, self.name, unit.pilot_id, state))
 
-        # print "[SchedulerCallback]: unit state callback history: %s" % (self.cb_hist)
-        # if state in [rp.UNSCHEDULED] and rp.SCHEDULING in self.cb_hist[unit.uid]:
-        #     print "[SchedulerCallback]: ComputeUnit %s with state %s already dealt with." % (unit.uid, state)
-        #     return
-        # self.cb_hist[unit.uid].append(state)
-
         if state == rp.DONE:
             if unit.uid != self.cu_id:
                 report.error("Callback is not for me!!!!\n")
 
             self.cu_done()
+
+        # TODO: what else to do for failed units?
+        elif state == rp.FAILED:
+            report.error('%s unit %s failed\n' % (self._header, unit.uid))
+            self.stop()
 
 
     ###########################################################################
@@ -711,13 +726,13 @@ class Task(pykka.ThreadingActor):
     def cu_done(self):
         gasw_desc = gasw_repo.get(self.gasw)
 
-        # value = gasw_desc['function'](self.task_no, self.input)
-        value = [self.output]
+        if 'post_function' in gasw_desc:
+            gasw_desc['post_function'](self)
 
         for op in self.output_ports:
             idx = self.index
-            report.warn('%s Sending %s to %s[%d]\n' % (self._header, value, op, idx))
-            self.output_ports[op]['proxy'].add_input(self.name, idx, value).get()
+            report.warn('%s Sending %s to %s[%d]\n' % (self._header, self.output, op, idx))
+            self.output_ports[op]['proxy'].add_input(self.name, idx, self.output).get()
 
         try:
             report.info('%s calling self.stop()\n' % (self._header))

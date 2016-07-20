@@ -1,15 +1,34 @@
+import copy
 import string
+import radical.pilot as rp
 
 
 def s2f(task_no, input):
     return ['fastq%d_%s' % (task_no, input)]
 
-def split(task_no, input):
-    chunks = 2
-    return [['%s_slice_%s' % (input, letter)] for letter in string.ascii_uppercase[:chunks]]
+
+def split(self):
+    # chunks = 2
+    # return [['%s_slice_%s' % (self.input, letter)] for letter in string.ascii_uppercase[:chunks]]
+
+    orig = self.output[0]
+    self.output = []
+    print 'files: %s' % orig.description.file_urls
+    for file in orig.description.file_urls:
+        dud = rp.DataUnitDescription()
+        dud.name = file
+        dud.file_urls = [file]
+        dud.size = 1
+        dud.selection = rp.SELECTION_FAST
+
+        du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=False)
+
+        self.output.append(du)
+
 
 def bwa(task_no, input):
     return ['%s.bam' % input[0]]
+
 
 def merge(task_no, input):
     return ['%s_merged.bam' % input[0][0][:6]]
@@ -18,52 +37,31 @@ def merge(task_no, input):
 gasw_repo = {
 
     "s2f.gasw": {
-        #"executable": "solid-to-fastqPE"
-        # "executable": "sleep",
-        # "arguments": ['1'],
-        # tr "[:upper:]" "[:lower:]" < solid.txt > fastq.txt
         "executable": "tr",
-        # "arguments": ['[:upper:]', '[:lower:]', '<', 'solid.txt', '>', 'fastq.txt'],
-        "arguments": ['[:upper:]', '[:lower:]', '<', '${TARGET}', '>', 'fastq.txt'],
-        # "input": 'solid.txt',
-        "output": 'fastq.txt',
-        "function": s2f
+        "arguments": ['[:upper:]', '[:lower:]', '<', '${INPUT}', '>', 'fastq.txt'],
+        "output": ['fastq.txt'],
+        # "post_function": s2f
     },
 
     "split.gasw": {
-        # "executable": "split-fastq"
-        # "executable": "sleep",
-        # "arguments": ['1'],
-        # split -l4 fastq.txt fastq.
-        #  awk 'NR%4==1 { file = "fastq_" sprintf("%04d", NR/4) } { print > file }' fastq.txt
         "executable": "awk",
         "arguments": ['NR%13==1 { file = "fastq_" sprintf("%04d", NR/13) } { print > file }', 'fastq.txt'],
-        "input": 'fastq.txt',
-        "output": 'fastq_0000',
-        "function": split
+        "output": ['fastq_0000', 'fastq_0001'],
+        "post_function": split
     },
 
     "bwa.gasw": {
-        # "executable": "bwa-short-paired-read",
-        # "executable": "sleep",
-        # "arguments": ['1'],
-        # gshuf fast_0000 > fast_0000.bam
         "executable": "gshuf",
-        "arguments": ['fastq_0000', '>', 'fastq_0000.bam'],
-        "input": 'fastq_0000',
-        "output": 'fastq_0000.bam',
-        "function": bwa
+        "arguments": ['${INPUT}', '>', '${INPUT}.bam'],
+        "output": ['${INPUT}.bam'],
+        # "output": ['fastq_0000.bam'],
+        # "post_function": bwa
     },
 
     "merge.gasw": {
-        # "executable": "merge-bam"
-        # "executable": "sleep",
-        # "arguments": ['1'],
-        # sort -r *.bam > result.bam
         "executable": "sort",
         "arguments": ['-r', '*.bam', '>', 'result.bam'],
-        "input": 'fastq_0000.bam',
-        "output": 'result.bam',
-        "function": merge
+        "output": ['result.bam'],
+        # "post_function": merge
     }
 }
