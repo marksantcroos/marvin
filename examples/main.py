@@ -126,7 +126,7 @@ if __name__ == '__main__':
         "local.pd_home"
     ]:
         dpdesc = rp.DataPilotDescription()
-        dpdesc.resource = '%s' % SE
+        dpdesc.resource = SE
         dpds.append(dpdesc)
 
     data_pilots = pmgr.submit_data_pilots(dpds)

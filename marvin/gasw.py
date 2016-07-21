@@ -15,15 +15,16 @@ def s2f(task_no, input):
 def split(self):
     orig = self.output[0]
     self.output = []
-    print 'files: %s' % orig.description.file_urls
-    for file in orig.description.file_urls:
+    print 'files: %s' % orig.description.files
+    for file in orig.description.files:
         dud = rp.DataUnitDescription()
         dud.name = file
-        dud.file_urls = [file]
+        dud.files = ['%s/%s' % (orig.uid, file)]
         dud.size = 1
         dud.selection = rp.SELECTION_FAST
 
-        du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=False)
+        # TODO: Move into new directory?
+        du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=True)
 
         self.output.append(du)
 

@@ -2,6 +2,7 @@
 
 import pykka
 import time
+import os
 
 from string import Template
 
@@ -14,6 +15,8 @@ import abstractwf
 from gasw import gasw_repo
 
 import pprint
+
+PREFIX = 'bwa/'
 
 ###############################################################################
 #
@@ -92,7 +95,7 @@ class Source(pykka.ThreadingActor):
 
             dud = rp.DataUnitDescription()
             dud.name = val
-            dud.file_urls = ["%s" % val]
+            dud.files = ["%s%s" % (PREFIX, val)]
             dud.size = 1
             dud.selection = rp.SELECTION_FAST
 
@@ -651,11 +654,14 @@ class Task(pykka.ThreadingActor):
         gasw_desc = gasw_repo.get(self.gasw)
 
         if not isinstance(self.input, list):
-            input = self.input.description.file_urls[0]
+            input = self.input.description.files[0]
         elif len(self.input) == 1:
-            input = self.input[0][0].description.file_urls[0]
+            input = self.input[0][0].description.files[0]
         else:
             input = None
+
+        if input:
+            input = os.path.basename(input)
 
         output = []
         for e in gasw_desc['output']:
@@ -663,12 +669,12 @@ class Task(pykka.ThreadingActor):
                 t = Template(e)
                 e = t.safe_substitute({'INPUT': input})
 
-            output.append(e)
+            output.append('%s%s' % (PREFIX, e))
 
         # TODO: Create DU per port?
         dud = rp.DataUnitDescription()
-        dud.name = output
-        dud.file_urls = output
+        # dud.name = 'output'
+        dud.files = output
         dud.size = 1
         dud.selection = rp.SELECTION_FAST
 
