@@ -16,7 +16,6 @@ from gasw import gasw_repo
 
 import pprint
 
-PREFIX = 'bwa/'
 
 ###############################################################################
 #
@@ -95,7 +94,7 @@ class Source(pykka.ThreadingActor):
 
             dud = rp.DataUnitDescription()
             dud.name = val
-            dud.files = ["%s%s" % (PREFIX, val)]
+            dud.files = [val]
             dud.size = 1
             dud.selection = rp.SELECTION_FAST
 
@@ -669,7 +668,7 @@ class Task(pykka.ThreadingActor):
                 t = Template(e)
                 e = t.safe_substitute({'INPUT': input})
 
-            output.append('%s%s' % (PREFIX, e))
+            output.append(e)
 
         # TODO: Create DU per port?
         dud = rp.DataUnitDescription()

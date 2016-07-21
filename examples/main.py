@@ -19,6 +19,8 @@ OSG = "OSG"
 
 CORES = 1
 
+PD_PREFIX = 'bwa'
+
 #------------------------------------------------------------------------------
 #
 CNT = 0
@@ -127,6 +129,7 @@ if __name__ == '__main__':
     ]:
         dpdesc = rp.DataPilotDescription()
         dpdesc.resource = SE
+        dpdesc.path = PD_PREFIX
         dpds.append(dpdesc)
 
     data_pilots = pmgr.submit_data_pilots(dpds)
