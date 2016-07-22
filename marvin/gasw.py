@@ -19,7 +19,8 @@ def split(self):
     for file in orig.description.files:
         dud = rp.DataUnitDescription()
         dud.name = file
-        dud.files = ['%s/%s' % (orig.uid, file)]
+        # TODO: can the path be derived from the original?
+        dud.files = ['tmp/%s/%s/%s' % (self.umgr._session.uid, orig.uid, file)]
         dud.size = 1
         dud.selection = rp.SELECTION_FAST
 
