@@ -80,6 +80,11 @@ if __name__ == '__main__':
         cpdesc.resource = "local.localhost"
         cpdesc.cores = CORES
 
+        se_list = [
+            # "local.pd_tmp",
+            "local.pd_home",
+        ]
+
     elif target == OSG:
         num_pilots = CORES
 
@@ -101,6 +106,20 @@ if __name__ == '__main__':
             '!GridUNESP_CENTRAL', # On hold immediately.
             #'~(HAS_CVMFS_oasis_opensciencegrid_org =?= TRUE)'
         ]
+
+        se_list = [
+            # 'osg.MIT_CMS',
+            #'LUCILLE',
+            # Preferred SEs
+            # 'cinvestav',
+            # "osg.GLOW",
+            # "SPRACE",
+            # "SWT2_CPB", # DEAD
+            # "osg.Nebraska",
+            # "osg.UCSDT2",
+            "osg.UTA_SWT2",
+        ]
+
     else:
         raise Exception("Unknown target: %s" % target)
 
@@ -110,23 +129,8 @@ if __name__ == '__main__':
         pilot = pmgr.submit_pilots(cpdesc)
         umgr.add_pilots(pilot)
         pilots.append(pilot)
-
     dpds = []
-    #for SE in [
-    for SE in [
-        #'MIT_CMS',
-        #'LUCILLE',
-        # Preferred SEs
-        # 'cinvestav',
-        # "osg.GLOW",
-        # "SPRACE",
-        # "SWT2_CPB", # DEAD
-        # "osg.Nebraska",
-        # "osg.UCSDT2",
-        # "osg.UTA_SWT2",
-        # "local.pd_tmp",
-        "local.pd_home"
-    ]:
+    for SE in se_list:
         dpdesc = rp.DataPilotDescription()
         dpdesc.resource = SE
         dpdesc.path = PD_PREFIX
