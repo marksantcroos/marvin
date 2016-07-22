@@ -59,7 +59,7 @@ gasw_repo = {
     },
 
     "bwa.gasw": {
-        "executable": "gshuf",
+        "executable": "shuf",
         "arguments": ['${INPUT}', '>', '${INPUT}.bam'],
         "output": ['${INPUT}.bam'],
         # "post_function": bwa
