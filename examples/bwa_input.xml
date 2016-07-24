@@ -18,10 +18,13 @@
         <!--</array>-->
     <!--</source>-->
 
-    <!--<source name="ReferenceTarGz" type="string">-->
-    <!--<array>-->
-        <!--<item>Reference1</item>-->
-    <!--</array>-->
-    <!--</source>-->
+    <source name="ReferenceTarGz" type="string">
+    <array>
+        <item>reference</item>
+        <item>reference</item>
+        <item>reference</item>
+        <item>reference</item>
+    </array>
+    </source>
 
 </inputdata>

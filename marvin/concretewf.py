@@ -15,6 +15,11 @@ import abstractwf
 from gasw import gasw_repo
 
 import pprint
+import itertools
+
+def _flatten(l):
+    return _flatten(l[0]) + (
+        _flatten(l[1:]) if len(l) > 1 else []) if type(l) is list else [l]
 
 
 ###############################################################################
@@ -419,7 +424,7 @@ class Processor(pykka.ThreadingActor):
                     report.info('%s Index complete and we are depth==1, fire of tasks!\n' % (self._header))
                     val = self.inputs[port][index]
                     self.indices_created.append(index)
-                    self.create_task(index, val)
+                    self.create_task(index, [val])
 
             return
 
@@ -555,11 +560,25 @@ class Processor(pykka.ThreadingActor):
                         return
                 except:
                     report.warn("%s Not all input ports have a value at index[%d]\n" % (self._header, index))
+
+                    # if ip == 'in_ReferenceTarGz':
+                    #     report.warn("%s Special case for in_ReferenceTarGz\n" % (self._header))
+                    #     continue
+
                     return
 
             report.warn("%s All input ports have a value at index[%d]\n" % (self._header, index))
 
-            for val in self.inputs[port][index]:
+            for ip in self.inputs:
+                report.error("%s input port %s[%d]: %s\n" % (self._header, ip, index, self.inputs[ip][index]))
+
+            inputs = [list(x) for x in itertools.product(*[_flatten(self.inputs[ip][index]) for ip in self.input_ports])]
+
+            report.error("%s inputs after mangling: %s\n" % (self._header, inputs))
+
+            # inputs = self.inputs[port][index]
+            for val in inputs:
+                report.warn("%s Creating task with '%s' as input(s)" % (self._header, val))
                 self.create_task(index, val)
 
         # merge
@@ -603,16 +622,18 @@ class Processor(pykka.ThreadingActor):
     #
     def create_task(self, index, input):
 
-
         name = '%s[%d]' % (self.name, self.task_no)
-        # input = {ip: self.inputs[ip][index] for ip in self.inputs}
+
         ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, index, self.task_no, self.umgr, self.data_pilots)
         self.actor_refs.append(ref)
-        # self.actor_proxies[name] = ref.proxy()
+
+        # Record submitted tasks for this index
         if index in self.running_tasks:
             self.running_tasks[index] += 1
         else:
             self.running_tasks[index] = 1
+
+        # Maintain task instance id
         self.task_no += 1
 
 
@@ -652,25 +673,29 @@ class Task(pykka.ThreadingActor):
 
         gasw_desc = gasw_repo.get(self.gasw)
 
-        if not isinstance(self.input, list):
-            input = self.input.description.files[0]
-        elif len(self.input) == 1:
-            input = self.input[0][0].description.files[0]
-        else:
-            input = None
+        report.warn("%s self.input from submit: %s" % (self._header, self.input))
 
-        if input:
-            input = os.path.basename(input)
+        self.input = _flatten(self.input)
+        report.warn("%s self.input after flatten: %s" % (self._header, self.input))
+
+        input_label = None
+        for du in self.input:
+            input_label = du.description.files[0]
+            input_label = os.path.basename(input_label)
+            if input_label != 'reference':
+                break
+
+        report.warn("%s input label: %s" % (self._header, input_label))
 
         output = []
         for e in gasw_desc['output']:
-            if input:
+            if input_label:
                 t = Template(e)
-                e = t.safe_substitute({'INPUT': input})
+                e = t.safe_substitute({'INPUT': input_label})
 
             output.append(e)
 
-        # TODO: Create DU per port?
+        # TODO: Create output DU per port
         dud = rp.DataUnitDescription()
         # dud.name = 'output'
         dud.files = output
@@ -689,20 +714,13 @@ class Task(pykka.ThreadingActor):
         cud.arguments = []
         cud.pre_exec = ['touch %s' % self.gasw]
         for arg in gasw_desc['arguments']:
-            if input:
+            if input_label:
                 t = Template(arg)
-                arg = t.safe_substitute({'INPUT': input})
+                arg = t.safe_substitute({'INPUT': input_label})
 
             cud.arguments.append(arg)
 
-        # TODO: I dont understand completely why we end up with different nesting
-        if not isinstance(self.input, list):
-            cud.input_data = [self.input.uid]
-        else:
-            if not isinstance(self.input[0], list):
-                cud.input_data = [d.uid for d in self.input]
-            else:
-                cud.input_data = [d.uid for l in self.input for d in l]
+        cud.input_data = [d.uid for d in self.input]
 
         cud.output_data = [du.uid]
 

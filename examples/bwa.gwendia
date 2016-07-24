@@ -3,7 +3,7 @@
     <interface>
         <source name="csFasta" type="string"/>
         <!--<source name="qual" type="string"/>-->
-        <!--<source name="ReferenceTarGz" type="string"/>-->
+        <source name="ReferenceTarGz" type="string"/>
         <!--<constant name="chunks" type="string" value="2" cardinality="scalar" />-->
         <sink name="Bai" type="string"/>
         <sink name="Bam" type="string"/>
@@ -29,12 +29,12 @@
         </processor>
         <processor name="bwa">
             <in name="in_fastq" type="string" depth="0"/>
-            <!--<in name="in_ReferenceTarGz" type="string" depth="0"/>-->
+            <in name="in_ReferenceTarGz" type="string" depth="0"/>
             <iterationstrategy>
-                <dot>
+                <cross>
                     <port name="in_fastq"/>
                     <port name="in_ReferenceTarGz"/>
-                </dot>
+                </cross>
             </iterationstrategy>
             <gasw descriptor="bwa.gasw"/>
             <out name="out_bam" type="string" depth="0"/>
@@ -52,7 +52,7 @@
         <link from="solid-to-fastq:out_fastq" to="split-fastq:in_fastq"/>
         <!--<link from="chunks" to="split-fastq:in_chunks"/>-->
         <link from="split-fastq:out_fastq" to="bwa:in_fastq"/>
-        <!--<link from="ReferenceTarGz" to="bwa:in_ReferenceTarGz"/>-->
+        <link from="ReferenceTarGz" to="bwa:in_ReferenceTarGz"/>
         <link from="bwa:out_bam" to="merge-bam:in_bam"/>
         <link from="merge-bam:out_bam" to="Bam"/>
         <link from="merge-bam:out_bai" to="Bai"/>
