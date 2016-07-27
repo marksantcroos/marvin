@@ -711,9 +711,10 @@ class Task(pykka.ThreadingActor):
 
         # Construct CU
         cud = rp.ComputeUnitDescription()
+        if 'pre_exec' in gasw_desc:
+            cud.pre_exec = gasw_desc['pre_exec']
         cud.executable = gasw_desc['executable']
         cud.arguments = []
-        cud.pre_exec = ['touch %s' % self.gasw]
         for arg in gasw_desc['arguments']:
             if input_label:
                 t = Template(arg)
