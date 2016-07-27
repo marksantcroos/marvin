@@ -1,4 +1,4 @@
 #!/bin/bash
 
 mv $1 $2
-sleep 10
+sleep $3
