@@ -4,26 +4,35 @@
 
     <source name="csFasta" type="String">
         <array>
-            <item>csfasta1</item>
-            <item>csfasta2</item>
-            <item>csfasta3</item>
+            <item>100M</item>
+            <!--<item>csfasta1</item>-->
+            <!--<item>csfasta2</item>-->
+            <!--<item>csfasta3</item>-->
         </array>
     </source>
 
-    <!--<source name="qual" type="String">-->
-        <!--<array>-->
+    <source name="qual" type="String">
+        <array>
+            <item>100M</item>
             <!--<item>qual1</item>-->
             <!--<item>qual2</item>-->
             <!--<item>qual3</item>-->
-        <!--</array>-->
-    <!--</source>-->
+        </array>
+    </source>
 
     <source name="ReferenceTarGz" type="string">
     <array>
-        <item>reference</item>
-        <item>reference</item>
-        <item>reference</item>
-        <item>reference</item>
+        <item>1M</item>
+        <!--<item>reference</item>-->
+        <!--<item>reference</item>-->
+        <!--<item>reference</item>-->
+        <!--<item>reference</item>-->
+        <!--<item>reference</item>-->
+        <!--<item>reference</item>-->
+        <!--<item>reference</item>-->
+        <!--<item>reference</item>-->
+        <!--<item>reference</item>-->
+        <!--<item>reference</item>-->
     </array>
     </source>
 

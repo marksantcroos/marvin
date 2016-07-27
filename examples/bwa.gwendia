@@ -2,7 +2,7 @@
 <workflow name="BWA">
     <interface>
         <source name="csFasta" type="string"/>
-        <!--<source name="qual" type="string"/>-->
+        <source name="qual" type="string"/>
         <source name="ReferenceTarGz" type="string"/>
         <!--<constant name="chunks" type="string" value="2" cardinality="scalar" />-->
         <sink name="Bai" type="string"/>
@@ -11,11 +11,11 @@
     <processors>
         <processor name="solid-to-fastq">
             <in name="in_csfasta" type="string" depth="0"/>
-            <!--<in name="in_qual" type="string" depth="0"/>-->
+            <in name="in_qual" type="string" depth="0"/>
             <iterationstrategy>
                 <dot>
                     <port name="in_fsfasta"/>
-                    <!--<port name="in_qual"/>-->
+                    <port name="in_qual"/>
                 </dot>
             </iterationstrategy>
             <gasw descriptor="s2f.gasw"/>
@@ -48,7 +48,7 @@
     </processors>
     <links>
         <link from="csFasta" to="solid-to-fastq:in_csfasta"/>
-        <!--<link from="qual" to="solid-to-fastq:in_qual"/>-->
+        <link from="qual" to="solid-to-fastq:in_qual"/>
         <link from="solid-to-fastq:out_fastq" to="split-fastq:in_fastq"/>
         <!--<link from="chunks" to="split-fastq:in_chunks"/>-->
         <link from="split-fastq:out_fastq" to="bwa:in_fastq"/>
