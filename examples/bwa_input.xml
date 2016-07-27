@@ -4,7 +4,7 @@
 
     <source name="csFasta" type="String">
         <array>
-            <item>100M</item>
+            <item>csfasta_100M</item>
             <!--<item>csfasta1</item>-->
             <!--<item>csfasta2</item>-->
             <!--<item>csfasta3</item>-->
@@ -13,7 +13,7 @@
 
     <source name="qual" type="String">
         <array>
-            <item>100M</item>
+            <item>qual_100M</item>
             <!--<item>qual1</item>-->
             <!--<item>qual2</item>-->
             <!--<item>qual3</item>-->
@@ -22,7 +22,7 @@
 
     <source name="ReferenceTarGz" type="string">
     <array>
-        <item>1M</item>
+        <item>reference_1M</item>
         <!--<item>reference</item>-->
         <!--<item>reference</item>-->
         <!--<item>reference</item>-->
