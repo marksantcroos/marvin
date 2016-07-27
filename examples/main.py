@@ -138,18 +138,9 @@ if __name__ == '__main__':
 
     data_pilots = pmgr.submit_data_pilots(dpds)
 
-    # if target == LOCAL:
-    print("Waiting for pilots to become active ...\n")
-    pmgr.wait_pilots([pilot.uid for pilot in pilots], state=[rp.ACTIVE, rp.FAILED, rp.CANCELED])
-
-    #gwendia_xml_file = '../examples/example.gwendia'
-    #input_file = '../examples/gwendia_input_sample.xml'
-
-    #gwendia_xml_file = 'dti_bedpost.gwendia'
-    #input_file = 'dti_bedpost-input.xml'
-    #inputfile = '../examples/dti7-noloop-input.xml'
-
-    #gwendia_xml_file = 'iter-test.gwendia'
+    if target == LOCAL:
+        print("Waiting for pilots to become active ...\n")
+        pmgr.wait_pilots([pilot.uid for pilot in pilots], state=[rp.ACTIVE, rp.FAILED, rp.CANCELED])
 
     gwendia_xml_file = '../examples/bwa.gwendia'
     input_file = '../examples/bwa_input.xml'
