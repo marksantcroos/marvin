@@ -1,4 +1,4 @@
 #!/bin/bash
 
-echo "Hello world"
-touch MYOUTPUT
+mv $1 $2
+sleep 10
