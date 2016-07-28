@@ -683,7 +683,10 @@ class Task(pykka.ThreadingActor):
             input_label = du.description.files[0]
             input_label = os.path.basename(input_label)
             # TODO: implement proper expansion of filenames based on port names
-            if input_label not in ['reference', '1M', '10M', '100M', '1000M', '10000M']:
+            if input_label not in [
+                'reference_1M', 'reference_10M', 'reference_100M', 'reference_1000M',
+                '1M', '10M', '100M', '1000M', '10000M'
+            ]:
                 break
 
         report.warn("%s input label: %s" % (self._header, input_label))
