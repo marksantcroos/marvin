@@ -17,30 +17,9 @@ import marvin
 LOCAL = "LOCAL"
 OSG = "OSG"
 
-CORES = 1
+CORES = 10
 
 PD_PREFIX = 'bwa'
-
-#------------------------------------------------------------------------------
-#
-CNT = 0
-def unit_state_cb (unit, state):
-
-    if not unit:
-        return
-
-    global CNT
-
-    print "[Callback]: unit %s on %s: %s." % (unit.uid, unit.pilot_id, state)
-
-    if state in [rp.FAILED, rp.DONE, rp.CANCELED]:
-        CNT += 1
-        print "[Callback]: # %6d" % CNT
-
-        # Hello HTC :-)
-        #if state == rp.FAILED:
-        #    print "stderr: %s" % unit.stderr
-        #    sys.exit(2)
 
 ###############################################################################
 #
@@ -59,16 +38,12 @@ if __name__ == '__main__':
     session = rp.Session()
     print "session id: %s" % session.uid
 
-
     pmgr = rp.PilotManager(session=session)
-    # pmgr.register_callback(pilot_state_cb)
 
     # SCHED = rp.SCHED_BACKFILLING
     SCHED = rp.SCHED_PILOTDATA
     # SCHED = rp.SCHED_DIRECT
     umgr = rp.UnitManager(session=session, scheduler=SCHED)
-    # umgr.register_callback(unit_state_cb,      rp.UNIT_STATE)
-    # umgr.register_callback(wait_queue_size_cb, rp.WAIT_QUEUE_SIZE)
 
     cpdesc = rp.ComputePilotDescription()
     cpdesc.cleanup = False
