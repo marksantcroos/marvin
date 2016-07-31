@@ -801,17 +801,13 @@ class ConcreteWF(object):
     # Create an abstract graph out of the internal workflow format
     # that was read from file
     #
-    def init(self, awf, inputdata, umgr, data_pilots):
+    def init(self, awf, inputdata, umgr, data_pilots, du_selection):
         report.info('Creating concrete workflow\n')
-
-        self.awf = awf
-        # self.umgr = umgr
-        # self.data_pilots = data_pilots
 
         self.actor_proxies = {}
         self.actor_refs = []
 
-        for n in self.awf.list_input_nodes():
+        for n in awf.list_input_nodes():
 
             if isinstance(n, abstractwf.Constant):
 
@@ -835,34 +831,34 @@ class ConcreteWF(object):
                 else:
                     raise Exception('Input not provided for port:' + n.name)
 
-        for n in self.awf.list_proc_nodes():
+        for n in awf.list_proc_nodes():
             report.info('Creating actor for Processor: %s\n' % n.name)
 
             ref = Processor.start(n.name, n.gasw, n.iter, umgr, data_pilots)
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 
-        for n in self.awf.list_output_nodes():
+        for n in awf.list_output_nodes():
             report.info('Creating actor for Sink: %s\n' % n.name)
 
             ref = Sink.start(n.name)
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 
-        for n in self.awf.list_port_nodes():
+        for n in awf.list_port_nodes():
             report.info('Creating actor for Port: %s\n' % n.name)
 
             ref = Port.start(n.name, n.type, n.depth)
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 
-        for e in self.awf.list_edges(self.awf.graph.nodes()):
+        for e in awf.list_edges(awf.graph.nodes()):
             # print 'Creating edges between Actors ...'
             # print e[0].name, e[1].name
 
             self.actor_proxies[e[0].name].link_to(self.actor_proxies[e[1].name]).get()
 
-        for n in self.awf.list_input_nodes():
+        for n in awf.list_input_nodes():
             self.actor_proxies[n.name].fire().get()
 
 
