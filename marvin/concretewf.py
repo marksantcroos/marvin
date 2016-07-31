@@ -14,7 +14,6 @@ import radical.pilot as rp
 import abstractwf
 from gasw import gasw_repo
 
-import pprint
 import itertools
 
 def _flatten(l):
@@ -33,7 +32,7 @@ class Source(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def __init__(self, name, umgr, data_pilots):
+    def __init__(self, name, umgr, data_pilots, du_selection):
         super(Source, self).__init__()
         self.name = name
         self.targets = []
@@ -41,6 +40,7 @@ class Source(pykka.ThreadingActor):
         self._header = '[SOURCE: %s]' % self.name
         self.umgr = umgr
         self.data_pilots = data_pilots
+        self.du_selection = du_selection
 
 
     ###########################################################################
@@ -101,7 +101,7 @@ class Source(pykka.ThreadingActor):
             dud.name = val
             dud.files = [val]
             dud.size = 1
-            dud.selection = rp.SELECTION_FAST
+            dud.selection = self.du_selection
 
             du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=True)
             print "data unit %s with %s available on data pilots: %s" % (du.uid, val, du.pilot_ids)
@@ -360,7 +360,7 @@ class Processor(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def __init__(self, name, gasw, iter, umgr, data_pilots):
+    def __init__(self, name, gasw, iter, umgr, data_pilots, du_selection):
         super(Processor, self).__init__()
         self.name = name
         self._header = '[PROC  : %s]' % self.name
@@ -369,6 +369,7 @@ class Processor(pykka.ThreadingActor):
         self.targets = []
         self.umgr = umgr
         self.data_pilots = data_pilots
+        self.du_selection = du_selection
 
         self.actor_refs = []
         # self.actor_proxies = {}
@@ -624,7 +625,7 @@ class Processor(pykka.ThreadingActor):
 
         name = '%s[%d]' % (self.name, self.task_no)
 
-        ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, index, self.task_no, self.umgr, self.data_pilots)
+        ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, index, self.task_no, self.umgr, self.data_pilots, self.du_selection)
         self.actor_refs.append(ref)
 
         # Record submitted tasks for this index
@@ -645,7 +646,7 @@ class Task(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def __init__(self, processor, name, gasw, input, output_ports, index, task_no, umgr, data_pilots):
+    def __init__(self, processor, name, gasw, input, output_ports, index, task_no, umgr, data_pilots, du_selection):
         super(Task, self).__init__()
         self.name = name
         self._header = '[TASK  : %s]' % self.name
@@ -658,6 +659,7 @@ class Task(pykka.ThreadingActor):
         self.processor = processor
         self.index = index
         self.task_no = task_no
+        self.du_selection = du_selection
 
 
     ###########################################################################
@@ -704,7 +706,7 @@ class Task(pykka.ThreadingActor):
         # dud.name = 'output'
         dud.files = output
         dud.size = 1
-        dud.selection = rp.SELECTION_FAST
+        dud.selection = self.du_selection
 
         du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=False)
         print "data unit: %s will be available on data pilots: %s" % (du.uid, du.pilot_ids)
@@ -820,7 +822,7 @@ class ConcreteWF(object):
             if isinstance(n, abstractwf.Source):
                 report.info('Creating actor for Source: %s\n' % n.name)
 
-                ref = Source.start(n.name, umgr, data_pilots)
+                ref = Source.start(n.name, umgr, data_pilots, du_selection)
                 self.actor_refs.append(ref)
                 proxy = ref.proxy()
 
@@ -834,7 +836,7 @@ class ConcreteWF(object):
         for n in awf.list_proc_nodes():
             report.info('Creating actor for Processor: %s\n' % n.name)
 
-            ref = Processor.start(n.name, n.gasw, n.iter, umgr, data_pilots)
+            ref = Processor.start(n.name, n.gasw, n.iter, umgr, data_pilots, du_selection)
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 
