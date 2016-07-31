@@ -23,11 +23,15 @@ def split(self):
         dud.name = file
         # TODO: can the path be derived from the original?
         dud.files = ['tmp/%s/%s/%s' % (self.umgr._session.uid, orig.uid, file)]
-        dud.size = 1
-        dud.selection = rp.SELECTION_FAST
+        dud.size = orig.description.size / len(orig.description.files)
+        report.error("setting splitted du size to: %d" % dud.size)
+        dud.selection = self.du_selection
+
+        # TODO: grab the DP from the orig DU and use it for the new DU
+
+        du = self.umgr.submit_data_units(dud, data_pilots=orig.pilot_ids, existing=True)
 
         # TODO: Move into new directory?
-        du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=True)
 
         self.output.append(du)
 
