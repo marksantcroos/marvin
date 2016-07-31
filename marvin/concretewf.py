@@ -100,11 +100,12 @@ class Source(pykka.ThreadingActor):
             dud = rp.DataUnitDescription()
             dud.name = val
             dud.files = [val]
-            dud.size = 1
+            report.error("du files (input): '%s'\n" % val)
+            dud.size = int(val.split('_')[1].split('M')[0])
             dud.selection = self.du_selection
 
-            du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=True)
-            print "data unit %s with %s available on data pilots: %s" % (du.uid, val, du.pilot_ids)
+            du = self.umgr.submit_data_units(dud, data_pilots=[dp.uid for dp in self.data_pilots], existing=True)
+            print "data unit %s (size: %d) with %s available on data pilots: %s" % (du.uid, dud.size, val, du.pilot_ids)
 
             self.data_units.append(du)
 
@@ -681,6 +682,7 @@ class Task(pykka.ThreadingActor):
         report.warn("%s self.input after flatten: %s" % (self._header, self.input))
 
         input_label = None
+        input_size = 1
         for du in self.input:
             input_label = du.description.files[0]
             input_label = os.path.basename(input_label)
@@ -689,6 +691,7 @@ class Task(pykka.ThreadingActor):
                 'reference_1M', 'reference_10M', 'reference_100M', 'reference_1000M',
                 '1M', '10M', '100M', '1000M', '10000M'
             ]:
+                input_size = du.description.size
                 break
 
         report.warn("%s input label: %s" % (self._header, input_label))
@@ -703,12 +706,12 @@ class Task(pykka.ThreadingActor):
 
         # TODO: Create output DU per port
         dud = rp.DataUnitDescription()
-        # dud.name = 'output'
         dud.files = output
-        dud.size = 1
+        report.error("du files (output): '%s'\n" % output)
+        dud.size = input_size
         dud.selection = self.du_selection
 
-        du = self.umgr.submit_data_units(dud, data_pilots=self.data_pilots, existing=False)
+        du = self.umgr.submit_data_units(dud, data_pilots=[dp.uid for dp in self.data_pilots], existing=False)
         print "data unit: %s will be available on data pilots: %s" % (du.uid, du.pilot_ids)
 
         # Record the DU as the output for this task
