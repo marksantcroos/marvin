@@ -3,6 +3,8 @@ import string
 import radical.pilot as rp
 import math
 
+import radical.utils as ru
+report = ru.LogReporter(name='radical.pilot')
 
 ###########################################################################
 #
