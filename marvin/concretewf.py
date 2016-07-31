@@ -361,7 +361,7 @@ class Processor(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def __init__(self, name, gasw, iter, umgr, data_pilots, du_selection):
+    def __init__(self, name, gasw, iter, umgr, data_pilots, du_selection, replacements):
         super(Processor, self).__init__()
         self.name = name
         self._header = '[PROC  : %s]' % self.name
@@ -371,6 +371,7 @@ class Processor(pykka.ThreadingActor):
         self.umgr = umgr
         self.data_pilots = data_pilots
         self.du_selection = du_selection
+        self.replacements = replacements
 
         self.actor_refs = []
         # self.actor_proxies = {}
@@ -626,7 +627,7 @@ class Processor(pykka.ThreadingActor):
 
         name = '%s[%d]' % (self.name, self.task_no)
 
-        ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, index, self.task_no, self.umgr, self.data_pilots, self.du_selection)
+        ref = Task.start(self.actor_ref.proxy(), name, self.gasw, input, self.output_ports, index, self.task_no, self.umgr, self.data_pilots, self.du_selection, self.replacements)
         self.actor_refs.append(ref)
 
         # Record submitted tasks for this index
@@ -647,7 +648,7 @@ class Task(pykka.ThreadingActor):
 
     ###########################################################################
     #
-    def __init__(self, processor, name, gasw, input, output_ports, index, task_no, umgr, data_pilots, du_selection):
+    def __init__(self, processor, name, gasw, input, output_ports, index, task_no, umgr, data_pilots, du_selection, replacements):
         super(Task, self).__init__()
         self.name = name
         self._header = '[TASK  : %s]' % self.name
@@ -661,6 +662,7 @@ class Task(pykka.ThreadingActor):
         self.index = index
         self.task_no = task_no
         self.du_selection = du_selection
+        self.replacements = replacements
 
 
     ###########################################################################
@@ -675,6 +677,18 @@ class Task(pykka.ThreadingActor):
     def submit_cu(self):
 
         gasw_desc = gasw_repo.get(self.gasw)
+
+        for entry in ['arguments', 'pre_exec', 'output']:
+            print 'entry: %s' % entry
+            new_entry = []
+            for field in gasw_desc[entry]:
+                print 'field before: %s' % field
+                t = Template(field)
+                new_field = t.safe_substitute(self.replacements)
+                print 'field after: %s' % new_field
+                new_entry.append(new_field)
+            gasw_desc[entry] = new_entry
+
 
         report.warn("%s self.input from submit: %s" % (self._header, self.input))
 
@@ -806,7 +820,7 @@ class ConcreteWF(object):
     # Create an abstract graph out of the internal workflow format
     # that was read from file
     #
-    def init(self, awf, inputdata, umgr, data_pilots, du_selection):
+    def init(self, awf, inputdata, umgr, data_pilots, du_selection, replacements):
         report.info('Creating concrete workflow\n')
 
         self.actor_proxies = {}
@@ -839,7 +853,7 @@ class ConcreteWF(object):
         for n in awf.list_proc_nodes():
             report.info('Creating actor for Processor: %s\n' % n.name)
 
-            ref = Processor.start(n.name, n.gasw, n.iter, umgr, data_pilots, du_selection)
+            ref = Processor.start(n.name, n.gasw, n.iter, umgr, data_pilots, du_selection, replacements)
             self.actor_refs.append(ref)
             self.actor_proxies[n.name] = ref.proxy()
 

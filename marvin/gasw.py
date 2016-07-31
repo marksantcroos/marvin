@@ -6,6 +6,8 @@ import math
 import radical.utils as ru
 report = ru.LogReporter(name='radical.pilot')
 
+CHUNKS = 10
+
 ###########################################################################
 #
 def s2f(task_no, input):
@@ -47,12 +49,6 @@ def bwa(task_no, input):
 def merge(task_no, input):
     return ['%s_merged.bam' % input[0][0][:6]]
 
-CHUNKS = 10
-S2F_DURATION = 10
-SPLIT_DURATION = 10
-BWA_DURATION = 10
-MERGE_DURATION = 10
-
 gasw_repo = {
 
     "s2f.gasw": {
@@ -64,7 +60,7 @@ gasw_repo = {
         # "executable": "tr",
         # "arguments": ['[:upper:]', '[:lower:]', '<', '${INPUT}', '>', '${INPUT}_fastq.txt'],
         "executable": "./solid2fastq.sh",
-        "arguments": ['${INPUT}', 'fastq.gz', str(S2F_DURATION)],
+        "arguments": ['${INPUT}', 'fastq.gz', '${S2F_DURATION}'],
         "output": ['fastq.gz'],
         # "post_function": s2f
     },
@@ -78,7 +74,7 @@ gasw_repo = {
         # "executable": "split",
         # "arguments": ['-a', '1', '-l', str(int(math.ceil(26/float(CHUNKS)))), '${INPUT}', '${INPUT}_'],
         "executable": "./split.sh",
-        "arguments": ['${INPUT}', str(CHUNKS), '${INPUT}_', str(SPLIT_DURATION)],
+        "arguments": ['${INPUT}', str(CHUNKS), '${INPUT}_', '${SPLIT_DURATION}'],
         "output": ['${INPUT}_%s' % suffix for suffix in string.ascii_lowercase[:CHUNKS]],
         "post_function": split
     },
@@ -92,7 +88,7 @@ gasw_repo = {
         # "executable": "shuf",
         # "arguments": ['${INPUT}', '>', '${INPUT}.bam'],
         "executable": "./bwa.sh",
-        "arguments": ['${INPUT}', '${INPUT}.bam', str(BWA_DURATION)],
+        "arguments": ['${INPUT}', '${INPUT}.bam', '${BWA_DURATION}'],
         "output": ['${INPUT}.bam'],
         # "post_function": bwa
     },
@@ -106,7 +102,7 @@ gasw_repo = {
         # "executable": "sort",
         # "arguments": ['-r', '*.bam', '>', 'result.bam'],
         "executable": "./merge.sh",
-        "arguments": ['"*.bam"', 'result.bam', str(MERGE_DURATION)],
+        "arguments": ['"*.bam"', 'result.bam', '${MERGE_DURATION}'],
         "output": ['result.bam'],
         # "post_function": merge
     }
