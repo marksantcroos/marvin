@@ -76,7 +76,7 @@ if __name__ == '__main__':
             '!FIU_HPCOSG_CE', # zeromq build fails
             #'BU_ATLAS_Tier2',
             '!UCSDT2', # No cc
-            # '!MWT2', # No ssh
+            '!MWT2', # No ssh
             '!SPRACE', # failing
             '!GridUNESP_CENTRAL', # On hold immediately.
             #'~(HAS_CVMFS_oasis_opensciencegrid_org =?= TRUE)'
